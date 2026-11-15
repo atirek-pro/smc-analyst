@@ -16,7 +16,9 @@
     "period": 14
   },
   "structure": {
-    "break_confirmation": "body_close"
+    "break_confirmation": "body_close",
+    "confirmation_timeframe": "15m",
+    "entry_timeframe": "5m"
   },
   "liquidity": {
     "equal_level_tolerance_atr": 0.1,
@@ -26,10 +28,14 @@
     "displacement_body_atr": 1.2,
     "ob_requires_displacement_or_fvg": true,
     "fvg_min_size_atr": 0.1,
+    "ob_search_back_bars": 3,
+    "base_max_body_atr": 0.5,
+    "base_max_candles": 3,
     "max_zones_per_timeframe": 10
   },
   "pd_array": {
     "equilibrium": 0.5,
+    "equilibrium_band": 0.05,
     "ote": [0.62, 0.79]
   },
   "sessions": {

@@ -5,7 +5,7 @@ description: Smart Money Concepts (SMC / ICT) market analysis for any stock, cry
 
 # SMC Analyst
 
-> **Build status: Phase 2 (environment and market-data layer).** The SMC analysis engine, trade plan and dashboard arrive in later phases. Until then this skill can only prepare its Python environment and fetch market data. If the user asks for an analysis now, say the engine is not built yet. Do not improvise an analysis that looks as if it came from this skill.
+> **Build status: Phase 3 (SMC engine).** The trade plan (entry/SL/TP), the dashboard and the full report workflow arrive in later phases. Until then this skill can prepare its environment, fetch market data and run the engine's top-down cascade for development and testing. If the user asks for an analysis now, say the engine is not built yet. Do not improvise an analysis that looks as if it came from this skill.
 
 ## What this skill will do
 Analyse an instrument top-down the way a discretionary SMC trader does:

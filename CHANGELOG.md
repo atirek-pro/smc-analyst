@@ -5,6 +5,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added (Phase 3: SMC engine)
+- `smc/swings.py`: fractal swing and internal pivots with confirmation index (no look-ahead), HH/HL/LH/LL labels.
+- `smc/structure.py`: BOS / CHoCH on body close (or wick), trend state, break history with impulse origin.
+- `smc/liquidity.py`: BSL/SSL pools, equal highs/lows (ATR tolerance), PDH/PDL/PWH/PWL, swept vs taken status.
+- `smc/zones.py`: order blocks (displacement- or FVG-validated), FVGs, supply/demand, with fresh/mitigated/invalidated state.
+- `smc/pd_array.py`: dealing range, EQ, premium/discount, OTE.
+- `smc/inducement.py` and `smc/sessions.py`: inducement detection and sweep, ICT killzones, session ranges.
+- `smc/mtf.py`: per-timeframe analysis plus the 5-stage top-down cascade with gate rule, per-stage rationale, alignment matrix, 0–100 confluence score, and a `python -m smc.mtf` CLI.
+- `references/smc-methodology.md` and `references/top-down-workflow.md`: the exact rules.
+- 61 new tests (`test_swings_structure.py`, `test_liquidity_zones.py`, `test_mtf.py`).
+
+### Changed
+- New config keys: `structure.confirmation_timeframe`, `structure.entry_timeframe`, `zones.ob_search_back_bars`, `zones.base_max_body_atr`, `zones.base_max_candles`, `pd_array.equilibrium_band`.
+- Plugin version 0.3.0.
+
+### Phase 2
+
 ### Added (Phase 2: market-data layer)
 - `smc/config.py`: deep-merges `config.default.json` with an optional user `config.json`.
 - `smc/data.py`: offline symbol resolver (crypto, forex, stocks, indices, metals and commodities), timeframe normalisation (1M to 1m), Binance REST klines with pagination and a mirror-host fallback, Yahoo Finance via yfinance, session-aligned 4H resampling, tick-size rounding, on-disk CSV cache with TTL, retry with backoff, market-hours status with next open, and a `python -m smc.data` CLI.
