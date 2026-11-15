@@ -1,0 +1,28 @@
+# Local development virtualenv
+smc-skill-env/
+
+# Skill runtime virtualenv created by scripts/setup.py
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Runtime data (market-data cache, signal journal, server PID files)
+cache/
+journal.json
+*.pid
+
+# User config overrides (defaults live in config.default.json)
+config.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docs
+implemntation_explaination.md

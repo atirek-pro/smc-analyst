@@ -1,0 +1,14 @@
+{
+  "name": "smc-analyst-marketplace",
+  "description": "Smart Money Concepts analysis skill for Claude Code.",
+  "owner": {
+    "name": "atirek-pro"
+  },
+  "plugins": [
+    {
+      "name": "smc-analyst",
+      "source": "./",
+      "description": "Top-down SMC analysis with a live candlestick dashboard and a tracked trade plan."
+    }
+  ]
+}
