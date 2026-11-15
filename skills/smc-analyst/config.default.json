@@ -54,14 +54,19 @@
   },
   "risk": {
     "account_size": null,
-    "risk_pct": 1.0
+    "risk_pct": 1.0,
+    "account_currency": "USD"
   },
   "hedge": {
     "correlation_window_days": 30,
-    "min_abs_correlation": 0.5
+    "min_abs_correlation": 0.5,
+    "history_days": 120
   },
   "tracker": {
-    "signal_expiry_hours": 48
+    "signal_expiry_hours": 48,
+    "timeframe": "5m",
+    "journal_path": "journal.json",
+    "max_catchup_bars": 5000
   },
   "data": {
     "cache_dir": "cache",
