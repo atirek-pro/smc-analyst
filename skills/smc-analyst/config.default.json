@@ -31,7 +31,7 @@
     "ob_search_back_bars": 3,
     "base_max_body_atr": 0.5,
     "base_max_candles": 3,
-    "max_zones_per_timeframe": 10
+    "max_zones_per_timeframe": 6
   },
   "pd_array": {
     "equilibrium": 0.5,

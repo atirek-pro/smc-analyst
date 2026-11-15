@@ -2,3 +2,4 @@
 # Includes the runtime pins so tests can import the engine.
 -r skills/smc-analyst/scripts/requirements.txt
 pytest==9.2.0
+httpx2==2.16.0  # used by starlette.testclient (FastAPI TestClient)

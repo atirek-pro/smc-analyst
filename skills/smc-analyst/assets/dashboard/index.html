@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMC Analyst</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='2' y='5' width='3' height='7' fill='%23ef5350'/%3E%3Crect x='6.5' y='3' width='3' height='8' fill='%2326a69a'/%3E%3Crect x='11' y='2' width='3' height='6' fill='%2326a69a'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div>
+        <div class="symbol" id="symbol">-</div>
+        <div class="sub" id="instrument">loading...</div>
+      </div>
+    </div>
+    <div class="price-block">
+      <div class="price" id="price">-</div>
+      <div class="sub" id="change"></div>
+    </div>
+    <nav class="tf-switch" id="tf-switch" aria-label="Timeframe"></nav>
+    <div class="badges">
+      <span class="badge" id="status-badge" title="Setup status">-</span>
+      <span class="badge muted" id="feed-badge" title="Live data connection">connecting</span>
+      <span class="badge muted" id="market-badge" title="Market session">-</span>
+    </div>
+    <div class="actions">
+      <button class="icon-btn" id="btn-layers" title="Layers (L)" aria-label="Layers">&#9776;</button>
+      <button class="icon-btn" id="btn-refresh" title="Refresh all timeframes (R)" aria-label="Refresh">&#8635;</button>
+      <button class="icon-btn" id="btn-theme" title="Toggle theme (T)" aria-label="Toggle theme">&#9680;</button>
+      <button class="icon-btn" id="btn-help" title="Keyboard shortcuts (?)" aria-label="Help">?</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="chart-wrap">
+      <div id="layers" class="layers" hidden></div>
+      <div id="chart" class="chart"></div>
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div id="loading-text">Running the top-down analysis...</div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside class="panel" id="panel">
+      <section class="card" id="card-status">
+        <h2>Setup</h2>
+        <div id="setup-summary" class="summary"></div>
+        <div class="confluence">
+          <div class="meter"><span id="confluence-bar"></span></div>
+          <span id="confluence-score">0/100</span>
+        </div>
+        <details id="confluence-details"><summary>Confluence breakdown</summary><table id="confluence-table"></table></details>
+      </section>
+
+      <section class="card" id="card-plan">
+        <h2>Trade plan</h2>
+        <div id="plan"></div>
+        <button class="btn" id="btn-track" hidden>Track this signal</button>
+      </section>
+
+      <section class="card" id="card-hedge">
+        <h2>Opposite scenario &amp; hedge</h2>
+        <div id="opposite"></div>
+        <div id="hedge"></div>
+      </section>
+
+      <section class="card">
+        <h2>Top-down rationale</h2>
+        <div id="stages"></div>
+      </section>
+
+      <section class="card">
+        <h2>Timeframe alignment</h2>
+        <table class="grid" id="alignment"></table>
+      </section>
+
+      <section class="card">
+        <h2>Signal journal</h2>
+        <div id="journal-stats" class="sub"></div>
+        <div class="table-scroll"><table class="grid" id="journal"></table></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span>Educational analysis only &mdash; not financial advice. Trading involves substantial risk of loss.</span>
+    <span id="data-note" class="sub"></span>
+  </footer>
+
+  <div id="help" class="modal" hidden>
+    <div class="modal-body">
+      <h2>Keyboard shortcuts</h2>
+      <table class="grid">
+        <tr><td><kbd>1</kbd>&ndash;<kbd>7</kbd></td><td>Switch timeframe (1W &rarr; 1m)</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Show / hide HTF zones on this timeframe</td></tr>
+        <tr><td><kbd>P</kbd></td><td>Show / hide the position tool</td></tr>
+        <tr><td><kbd>L</kbd></td><td>Layers panel</td></tr>
+        <tr><td><kbd>F</kbd></td><td>Fit chart to recent bars</td></tr>
+        <tr><td><kbd>R</kbd></td><td>Refresh all timeframes</td></tr>
+        <tr><td><kbd>T</kbd></td><td>Toggle dark / light theme</td></tr>
+        <tr><td><kbd>?</kbd> / <kbd>Esc</kbd></td><td>Show / close this help</td></tr>
+      </table>
+      <button class="btn" id="help-close">Close</button>
+    </div>
+  </div>
+
+  <script src="/static/vendor/lightweight-charts.standalone.production.js"></script>
+  <script src="/static/overlays.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

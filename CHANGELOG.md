@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added (Phase 5: live dashboard)
+- `scripts/serve.py`: FastAPI server for one symbol with these endpoints:
+  - `GET /api/meta`, `/api/candles?tf=`, `/api/analysis?tf=`, `/api/journal`
+  - `POST /api/track`, `/api/refresh`, `/api/shutdown`
+  - `WS /ws/stream`: live candles for the viewed timeframe, and status, `analysis_updated` and `journal` notifications
+- Live data: on-demand upstream feeds per timeframe (the viewed timeframes, plus the pinned confirmation and tracker timeframes). A candle close recomputes that timeframe's cached analysis, refreshes stale HTF frames, and rebuilds the cascade and plan. A reconnect triggers a backfill. Live candles feed the journal tracker.
+- Process management: free-port selection, a PID file (duplicate prevention), `--stop`, `--status`, `--replace`, `--json`, `--track`, and the browser opens automatically once the server is ready.
+- `assets/dashboard/` (no build step): `index.html`, `styles.css`, `app.js`, `overlays.js`, and vendored TradingView Lightweight Charts 5.2.1 (Apache-2.0).
+  - Custom series primitive drawing BOS/CHoCH lines, OB/FVG/S&D boxes that end on mitigation, BSL/SSL/EQH/EQL/PDH... liquidity, sweep ✕ marks, inducement, premium/discount/EQ/OTE, HTF POIs projected onto lower timeframes, the position tool (entry/SL/TP boxes) and the opposite scenario as a ghost.
+  - UI: 1W–1m switcher, layer toggles, side panel (setup and confluence, trade plan, opposite scenario, hedge, top-down rationale, alignment matrix, journal), dark/light theme, keyboard shortcuts, `?tf=` / `?theme=` deep links, disclaimer footer.
+- 15 new tests (`tests/test_serve.py`).
+
+### Changed
+- `zones.max_zones_per_timeframe` default 10 → 6 (chart readability; the cascade still searches every active zone).
+- Dev dependency `httpx2==2.16.0` for FastAPI's TestClient.
+- Version 0.5.0.
+
+### Phase 4
+
 ### Added (Phase 4: trade plan and tracking)
 - `smc/signal.py`: priced trade plans built from READY cascades. Includes entry (zone edge or 50%), SL (distal or invalidation, plus ATR buffer), TP1 (nearest liquidity), TP2 (next swing), TP3 (external DOL / opposing HTF POI), R:R per target, a validity gate (`min_rr`), limit-vs-market entry, and a note when most of the move to TP1 is done.
 - Position sizing for crypto, stocks, forex (lots, with quote-to-USD conversion), gold/silver and indices, with a leverage warning.
