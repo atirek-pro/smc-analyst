@@ -5,6 +5,16 @@ Phase 2 provides the data layer:
     data        symbol resolution, timeframes, OHLCV fetch, cache, market status
     feeds       live candle streams (Binance WebSocket, Yahoo polling)
     indicators  ATR, displacement, returns / correlation / beta
+
+Phase 3 adds the SMC engine:
+    swings      fractal pivots (swing + internal)
+    structure   BOS / CHoCH, trend state
+    liquidity   BSL/SSL, equal highs/lows, PDH/PDL/PWH/PWL, sweeps
+    zones       order blocks, FVGs, supply/demand, mitigation state
+    pd_array    dealing range, premium/discount, OTE
+    inducement  bait liquidity in front of a POI
+    sessions    ICT killzones
+    mtf         per-timeframe analysis + the 5-stage top-down cascade
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
