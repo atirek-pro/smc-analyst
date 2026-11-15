@@ -59,6 +59,7 @@
   },
   "data": {
     "cache_dir": "cache",
+    "cache_ttl_seconds": null,
     "poll_interval_seconds": 30
   },
   "server": {

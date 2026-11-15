@@ -2,9 +2,9 @@
 
 > Top-down **Smart Money Concepts (SMC / ICT)** analysis for stocks, crypto and forex. It opens a **live candlestick dashboard** with every concept drawn on the chart and produces a **tracked trade plan**.
 
-![status](https://img.shields.io/badge/status-phase%201%20of%207-orange) ![license](https://img.shields.io/badge/license-MIT-blue) ![python](https://img.shields.io/badge/python-3.12%2B-blue)
+![status](https://img.shields.io/badge/status-phase%202%20of%207-orange) ![license](https://img.shields.io/badge/license-MIT-blue) ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 
-> 🚧 **Work in progress.** Phase 1 (scaffold and environment setup) is complete. The analysis engine, trade plan and dashboard land in later phases. See [PLAN.md](PLAN.md).
+> 🚧 **Work in progress.** Phase 1 (scaffold and environment setup) and Phase 2 (market-data layer) are complete. The analysis engine, trade plan and dashboard land in later phases. See [PLAN.md](PLAN.md).
 
 ## What it will do
 
@@ -45,7 +45,7 @@ skills/smc-analyst/
   config.default.json    tunable defaults (override with config.json)
   references/            methodology docs (Phase 3+)
   scripts/setup.py       environment bootstrap
-  scripts/smc/           analysis engine (Phase 2+)
+  scripts/smc/           engine: data layer (Phase 2), SMC detection (Phase 3+)
   assets/dashboard/      live chart UI (Phase 5)
 tests/                   pytest suite
 ```
