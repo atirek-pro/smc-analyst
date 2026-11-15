@@ -5,6 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added (Phase 4: trade plan and tracking)
+- `smc/signal.py`: priced trade plans built from READY cascades. Includes entry (zone edge or 50%), SL (distal or invalidation, plus ATR buffer), TP1 (nearest liquidity), TP2 (next swing), TP3 (external DOL / opposing HTF POI), R:R per target, a validity gate (`min_rr`), limit-vs-market entry, and a note when most of the move to TP1 is done.
+- Position sizing for crypto, stocks, forex (lots, with quote-to-USD conversion), gold/silver and indices, with a leverage warning.
+- Opposite-bias scenario: trigger on a close beyond invalidation; nearest opposing zone or flip zone; entry, SL, TP and R:R.
+- Correlated hedge: partner map, 30-day correlation and beta, direction, beta-weighted size, suppression below |0.5|.
+- `smc/tracker.py`: signal state machine (pending, triggered, TP1-3, SL, breakeven stop, expired), scale-out plus breakeven management model, JSON journal, idempotent catch-up replay, live-candle updates, hit rate and average R.
+- CLIs: `python -m smc.signal SYMBOL [--account --risk-pct --track --json]` and `python -m smc.tracker [--refresh --json]`.
+- `references/trade-plan-rules.md` and `references/symbols.md`.
+- 42 new tests (`test_signal.py`, `test_tracker.py`).
+
+### Changed
+- New config keys: `risk.account_currency`, `hedge.history_days`, `tracker.timeframe`, `tracker.journal_path`, `tracker.max_catchup_bars`.
+- Version 0.4.0.
+
+### Phase 3
+
 ### Added (Phase 3: SMC engine)
 - `smc/swings.py`: fractal swing and internal pivots with confirmation index (no look-ahead), HH/HL/LH/LL labels.
 - `smc/structure.py`: BOS / CHoCH on body close (or wick), trend state, break history with impulse origin.

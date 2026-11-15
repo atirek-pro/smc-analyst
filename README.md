@@ -2,9 +2,9 @@
 
 > Top-down **Smart Money Concepts (SMC / ICT)** analysis for stocks, crypto and forex. It opens a **live candlestick dashboard** with every concept drawn on the chart and produces a **tracked trade plan**.
 
-![status](https://img.shields.io/badge/status-phase%203%20of%207-orange) ![license](https://img.shields.io/badge/license-MIT-blue) ![python](https://img.shields.io/badge/python-3.12%2B-blue)
+![status](https://img.shields.io/badge/status-phase%204%20of%207-orange) ![license](https://img.shields.io/badge/license-MIT-blue) ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 
-> 🚧 **Work in progress.** Phases 1–3 (scaffold, market-data layer and the SMC engine with the top-down cascade) are complete. The analysis engine, trade plan and dashboard land in later phases. See [PLAN.md](PLAN.md).
+> 🚧 **Work in progress.** Phases 1–4 (scaffold, market-data layer, SMC engine with the top-down cascade, and the trade plan with live tracking) are complete. The live dashboard and the full Claude report workflow land in later phases. See [PLAN.md](PLAN.md).
 
 ## What it will do
 

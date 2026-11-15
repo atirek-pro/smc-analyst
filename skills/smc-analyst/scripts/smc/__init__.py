@@ -15,6 +15,10 @@ Phase 3 adds the SMC engine:
     inducement  bait liquidity in front of a POI
     sessions    ICT killzones
     mtf         per-timeframe analysis + the 5-stage top-down cascade
+
+Phase 4 adds trade planning and tracking:
+    signal      entry / SL / TP1-3 / R:R, position sizing, opposite scenario, correlated hedge
+    tracker     signal state machine, JSON journal, catch-up replay, hit rate / average R
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
