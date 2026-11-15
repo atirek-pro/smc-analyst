@@ -1,2 +1,4 @@
-# Development-only dependencies (not installed by the skill's setup.py)
+# Development-only dependencies (not installed by the skill's setup.py).
+# Includes the runtime pins so tests can import the engine.
+-r skills/smc-analyst/scripts/requirements.txt
 pytest==9.2.0
