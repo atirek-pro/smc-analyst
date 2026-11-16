@@ -161,7 +161,8 @@ class DashboardState:
                  fetch: Callable[..., pd.DataFrame] | None = None, stream: Callable | None = None,
                  hedge_fetch: Callable | None = None, journal: Journal | None = None, live: bool = True):
         self.cfg = cfg or get_config()
-        self.inst = data.resolve_symbol(symbol)  # raises SymbolError early for bad input
+        # a string, or an Instrument already forced to an asset class (raises SymbolError early)
+        self.inst = symbol if isinstance(symbol, data.Instrument) else data.resolve_symbol(symbol)
         self.symbol = self.inst.symbol
         tfs = list(self.cfg["timeframes"]["ladder"])
         if self.cfg["timeframes"].get("include_monthly") and "1M" not in tfs:
@@ -621,6 +622,48 @@ def stop_server(path: Path = PID_FILE) -> dict:
     return {"status": "stopped" if live else "stale_pid_file_removed", "pid": info.get("pid"), "url": info.get("url")}
 
 
+LOG_FILE = SKILL_DIR / ".server.log"
+
+
+def detached_command(argv: list[str]) -> list[str]:
+    """The child command for ``--detach``: same arguments, minus the flags the parent handled."""
+    drop = {"--detach", "--replace"}
+    return [sys.executable, str(Path(__file__).resolve()), *[a for a in argv if a not in drop]]
+
+
+def start_detached(argv: list[str], symbol: str, timeout: float = 60.0) -> dict:
+    """Spawn the server so it survives the calling shell (e.g. a finished Claude turn).
+
+    Windows: a new process group, detached from the console. POSIX: a new session. The child's
+    output goes to ``.server.log``. Returns once the child's /api/meta answers for ``symbol``.
+    """
+    import subprocess
+
+    kwargs: dict[str, Any] = {"stdin": subprocess.DEVNULL, "close_fds": True}
+    if os.name == "nt":
+        kwargs["creationflags"] = (subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+                                   | subprocess.CREATE_NO_WINDOW)
+    else:
+        kwargs["start_new_session"] = True
+    with open(LOG_FILE, "w", encoding="utf-8") as log:
+        proc = subprocess.Popen(detached_command(argv), stdout=log, stderr=subprocess.STDOUT, **kwargs)
+    # Match on the symbol, not proc.pid: on Windows a venv's python.exe is a launcher that starts the
+    # real interpreter as a child, so the server's pid differs from the process we spawned.
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        live = running_server()
+        if live and live["symbol"] == symbol:
+            return {"status": "started", "url": live["url"], "pid": live["pid"], "symbol": symbol,
+                    "detached": True, "log": str(LOG_FILE)}
+        if proc.poll() is not None:
+            break
+        time.sleep(0.3)
+    tail = ""
+    with contextlib.suppress(OSError):
+        tail = LOG_FILE.read_text(encoding="utf-8", errors="replace")[-600:]
+    return {"status": "error", "message": f"server did not come up (exit code {proc.poll()})", "log_tail": tail}
+
+
 def _open_browser_when_ready(url: str) -> None:
     def worker():
         for _ in range(100):
@@ -634,6 +677,8 @@ def _open_browser_when_ready(url: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="SMC Analyst live dashboard.")
     ap.add_argument("--symbol", help="symbol to chart, e.g. BTCUSDT, EURUSD, AAPL")
+    ap.add_argument("--asset-class", choices=data.ASSET_CLASSES, default=None,
+                    help="force how an ambiguous symbol is read (e.g. SOL as a stock)")
     ap.add_argument("--account", type=float, default=None, help="account size for position sizing")
     ap.add_argument("--risk-pct", type=float, default=None, help="percent risked per trade")
     ap.add_argument("--track", action="store_true", help="automatically track valid plans in the journal")
@@ -644,6 +689,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--stop", action="store_true", help="stop the running dashboard")
     ap.add_argument("--status", action="store_true", help="show whether a dashboard is running")
     ap.add_argument("--json", action="store_true", help="print machine-readable status lines")
+    ap.add_argument("--detach", action="store_true",
+                    help="start the server as an independent background process, wait until it answers, "
+                         "print its URL and return (the dashboard keeps running after this command exits)")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
@@ -666,7 +714,8 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--symbol is required to start the dashboard")
 
     try:
-        wanted = data.resolve_symbol(args.symbol).symbol
+        wanted_inst = data.resolve_symbol(args.symbol, args.asset_class)
+        wanted = wanted_inst.symbol
     except data.SymbolError as exc:
         out({"status": "error", "message": str(exc)}, f"Error: {exc}")
         return 1
@@ -683,12 +732,19 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if live and args.replace:
         stop_server()
+    if args.detach:
+        res = start_detached(argv if argv is not None else sys.argv[1:], wanted)
+        out(res, f"SMC dashboard for {wanted} running at {res['url']} (pid {res['pid']}). "
+                 f"Stop with: python serve.py --stop" if res["status"] == "started"
+            else f"Dashboard failed to start: {res.get('message')}")
+        return 0 if res["status"] == "started" else 1
 
     cfg = get_config()
     host = args.host or cfg["server"]["host"]
     port = args.port or pick_port(host, tuple(cfg["server"]["port_range"]))
     url = f"http://{host}:{port}"
-    state = DashboardState(wanted, cfg, account=args.account, risk_pct=args.risk_pct, auto_track=args.track)
+    state = DashboardState(wanted_inst, cfg, account=args.account, risk_pct=args.risk_pct,
+                           auto_track=args.track)
     app = create_app(state)
 
     import uvicorn

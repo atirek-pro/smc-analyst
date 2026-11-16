@@ -5,6 +5,41 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added (Phase 6: Claude workflow)
+- `SKILL.md`: the complete workflow Claude follows (137 lines):
+  1. identify the instrument, asking when ambiguous
+  2. environment setup
+  3. `analyze.py`
+  4. references on demand
+  5. present the report verbatim
+  6. launch the dashboard in the background with link and stop command
+  7. disclaimer
+  It also covers follow-up requests, error handling and guardrails.
+- `scripts/analyze.py`: the single entry point.
+  - `--resolve` (offline symbol reading plus ambiguity)
+  - full analysis with `--json` / `--format markdown`, `--asset-class`, `--account`, `--risk-pct`, `--track`, `--no-hedge`
+  - one JSON contract (`summary`, `cascade`, `plan`, `dashboard_args`, `report_markdown`)
+  - exit codes 0/1/2/3
+  - a clear error when run outside the skill `.venv`
+- `references/output-format.md`: report structure, what Claude may add, the dashboard section, wording per situation, multi-symbol and follow-up guidance.
+- Symbol resolution:
+  - `resolve_symbol(query, asset_class=None)` forces a reading
+  - TradingView exchange prefixes set the class (`NASDAQ:`, `NYSE:`, `NSE:`→`.NS`, `LSE:`→`.L`, `BINANCE:`, `FX:` …)
+  - `alternative_readings()` flags ambiguous bare inputs (crypto coins that are also stock tickers; `GOLD`)
+- `mtf.analyze_symbol` and the dashboard accept a pre-resolved instrument; `serve.py --asset-class`.
+- `serve.py --detach`: starts the dashboard as an independent process (new process group/session, log in `.server.log`), waits until it answers, prints the URL and returns. The dashboard then survives the end of the Claude turn that launched it; background shell jobs were killed when the turn ended.
+- Dashboard accepts lowercase deep links (`?tf=4h`, `1d`, `1w`).
+- 31 new tests (`tests/test_analyze.py`, plus `--detach` tests in `tests/test_serve.py`).
+
+### Fixed
+- A plan whose TP1 had already traded was still reported as `valid`; it is now `no_valid_setup` ("the move has played out").
+- Rationale now says "below/above the range" instead of "discount (-0%)" when price has left the dealing range.
+
+### Changed
+- Version 0.6.0.
+
+### Phase 5
+
 ### Added (Phase 5: live dashboard)
 - `scripts/serve.py`: FastAPI server for one symbol with these endpoints:
   - `GET /api/meta`, `/api/candles?tf=`, `/api/analysis?tf=`, `/api/journal`

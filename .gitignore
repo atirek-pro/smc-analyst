@@ -27,3 +27,5 @@ Thumbs.db
 # Docs
 implemntation_explaination.md
 resume-with.txt
+# Dashboard server log (serve.py --detach)
+.server.log
