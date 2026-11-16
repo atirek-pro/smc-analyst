@@ -38,10 +38,10 @@ import json
 import logging
 import math
 import os
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 
@@ -104,7 +104,7 @@ class TrackedSignal:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "TrackedSignal":
+    def from_dict(cls, d: dict) -> TrackedSignal:
         names = cls.__dataclass_fields__.keys()
         return cls(**{k: v for k, v in d.items() if k in names})
 
@@ -138,8 +138,9 @@ class TrackedSignal:
             if t < created or (last is not None and t <= last):
                 continue
             hi, lo = float(bar["high"]), float(bar["low"])
-            touches = (lambda px: lo <= px) if d == BULL else (lambda px: hi >= px)   # adverse side
-            reaches = (lambda px: hi >= px) if d == BULL else (lambda px: lo <= px)   # favourable side
+            # adverse / favourable side of this candle (values bound now: evaluated in this iteration)
+            touches = (lambda px, lo=lo: lo <= px) if d == BULL else (lambda px, hi=hi: hi >= px)
+            reaches = (lambda px, hi=hi: hi >= px) if d == BULL else (lambda px, lo=lo: lo <= px)
 
             if self.status == "pending":
                 if t >= expires:
@@ -178,7 +179,7 @@ class TrackedSignal:
             if data.is_bar_closed(t, tf, now):
                 self.last_processed = _iso(t)
         # a pending signal can also expire while no candles arrive (e.g. market closed)
-        now_ts = pd.Timestamp(now or datetime.now(timezone.utc))
+        now_ts = pd.Timestamp(now or datetime.now(UTC))
         if self.status == "pending" and now_ts >= expires:
             self._event(expires, "expired", None, "entry not filled before expiry")
             self._close(expires, "expired", "expired", None)
@@ -241,7 +242,7 @@ class Journal:
         existing = self.get(sid)
         if existing is not None and existing.is_open:
             return existing
-        now = pd.Timestamp(now or datetime.now(timezone.utc))
+        now = pd.Timestamp(now or datetime.now(UTC))
         now = now.tz_localize("UTC") if now.tzinfo is None else now
         hours = float(self.cfg["tracker"]["signal_expiry_hours"])
         sig = TrackedSignal(
@@ -265,7 +266,7 @@ class Journal:
 
     def bars_needed(self, sig: TrackedSignal, now: datetime | None = None) -> int:
         start = _ts(sig.last_processed) or _ts(sig.created_at)
-        now_ts = pd.Timestamp(now or datetime.now(timezone.utc))
+        now_ts = pd.Timestamp(now or datetime.now(UTC))
         span = (now_ts - start).total_seconds()
         n = int(math.ceil(span / data.TF_SECONDS[data.normalize_timeframe(sig.timeframe)])) + 2
         return max(2, min(n, int(self.cfg["tracker"].get("max_catchup_bars", 5000))))
@@ -289,7 +290,8 @@ class Journal:
             self.save()
         return changed
 
-    def update_with_candle(self, symbol: str, tf: str, candle: dict, now: datetime | None = None) -> list[TrackedSignal]:
+    def update_with_candle(self, symbol: str, tf: str, candle: dict,
+                           now: datetime | None = None) -> list[TrackedSignal]:
         """Feed one live candle event (from ``feeds.stream``) to the matching open signals."""
         df = pd.DataFrame([{k: candle[k] for k in ("open", "high", "low", "close", "volume")}],
                           index=pd.DatetimeIndex([pd.Timestamp(candle["time"], unit="s", tz="UTC")], name="time"))
@@ -326,7 +328,7 @@ def format_journal(j: Journal) -> str:
     if not j.signals:
         lines.append("  (no tracked signals yet - use `python -m smc.signal SYMBOL --track`)")
     for s in j.signals:
-        p = lambda x: fmt_price(x, s.tick_size)  # noqa: E731
+        p = lambda x, tick=s.tick_size: fmt_price(x, tick)
         tps = " / ".join(p(t["price"]) for t in s.targets)
         r = "" if s.r_multiple is None else f"  {s.r_multiple:+.2f}R"
         lines.append(f"  {s.id}  {s.symbol:<10} {s.side:<5} {s.status:<17} entry {p(s.entry)}  SL {p(s.stop_loss)}"

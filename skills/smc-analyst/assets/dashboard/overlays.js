@@ -170,6 +170,13 @@
       this.shapes = { rects: [], segments: [], glyphs: [], texts: [], ...shapes };
       if (this.request) this.request();
     }
+    // Price range that must stay visible (e.g. the trade plan's entry, stop and TP1); merged by the
+    // chart with the candles' own range. Cached value: this is called on every scroll/zoom frame.
+    setAutoscale(min, max) {
+      this.autoscale = Number.isFinite(min) && Number.isFinite(max) ? { priceRange: { minValue: min, maxValue: max } } : null;
+      if (this.request) this.request();
+    }
+    autoscaleInfo() { return this.autoscale || null; }
     updateAllViews() { this.view.update(); }
     paneViews() { return [this.view]; }
   }

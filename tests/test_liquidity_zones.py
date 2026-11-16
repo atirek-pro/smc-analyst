@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
-from smc_builders import T0, candles
 
 from smc import liquidity as liq
 from smc import sessions
@@ -12,8 +11,9 @@ from smc.inducement import find_inducement
 from smc.pd_array import dealing_range
 from smc.structure import StructureBreak
 from smc.swings import Swing
-from smc.zones import (Zone, ZoneResult, analyze_zones, find_fvgs, find_order_blocks, find_supply_demand,
-                       update_states)
+from smc.zones import Zone, ZoneResult, analyze_zones, find_fvgs, find_order_blocks, find_supply_demand, update_states
+
+from smc_builders import T0, candles
 
 
 def sw(kind, i, price, df, confirm=1, level="internal"):

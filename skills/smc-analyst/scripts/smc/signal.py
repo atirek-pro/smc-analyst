@@ -26,14 +26,14 @@ import argparse
 import json
 import logging
 import math
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timezone
-from typing import Callable
+from datetime import UTC, datetime
 
 import pandas as pd
 
 from . import data
-from .common import BEAR, BULL, dir_name, fmt_price, jsonable
+from .common import BEAR, BULL, fmt_price, jsonable
 from .config import get_config
 from .indicators import correlation_and_beta
 from .mtf import CascadeResult, TimeframeAnalysis
@@ -367,7 +367,7 @@ def position_size(inst, entry: float, stop: float, account: float, risk_pct: flo
 # =============================================================================
 
 def opposite_scenario(res: CascadeResult, analyses: dict[str, TimeframeAnalysis], inst, cfg: dict,
-                      plan: "TradePlan") -> OppositeScenario:
+                      plan: TradePlan) -> OppositeScenario:
     """The counter setup if price closes through the plan's invalidation level.
 
     Flipped bias. The POI is the nearest opposing zone (1H/15m/4H) beyond the trigger, inside
@@ -495,7 +495,7 @@ def build_trade_plan(res: CascadeResult, analyses: dict[str, TimeframeAnalysis],
     cfg = cfg or get_config()
     bias = res.bias
     plan = TradePlan(symbol=res.symbol, asset_class=res.asset_class, status="no_setup", direction=bias,
-                     price=res.price, generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                     price=res.price, generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
                      cascade_status=res.status, confluence=int(res.confluence.get("score", 0)),
                      waiting_for=res.waiting_for, tick_size=getattr(inst, "tick_size", None),
                      min_rr=float(cfg["trade"]["min_rr"]))

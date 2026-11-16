@@ -10,14 +10,15 @@ import time
 import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
-from smc_builders import zigzag
-from test_tracker import plan as valid_plan
 
 import serve
 from smc.config import load_config
 from smc.data import TF_SECONDS, resolve_symbol
 from smc.mtf import analyze_timeframe
 from smc.tracker import Journal
+
+from smc_builders import zigzag
+from test_tracker import plan as valid_plan
 
 CFG = load_config()
 FREQ = {"1W": "7D", "1D": "1D", "4H": "4h", "1H": "1h", "15m": "15min", "5m": "5min", "1m": "1min"}
@@ -26,7 +27,8 @@ LEGS = [2, 6, 2, 6, 2, 6, 2, 6, 2, 6]
 
 
 def frame(tf: str, closed: bool = True) -> pd.DataFrame:
-    end = pd.Timestamp("2026-11-13 12:00", tz="UTC").floor(FREQ[tf]) if tf != "1W" else pd.Timestamp("2026-11-09", tz="UTC")
+    end = (pd.Timestamp("2026-11-13 12:00", tz="UTC").floor(FREQ[tf]) if tf != "1W"
+           else pd.Timestamp("2026-11-09", tz="UTC"))
     n = 1 + sum(LEGS)
     df = zigzag(PTS, legs=LEGS, start=end - pd.Timedelta(seconds=TF_SECONDS[tf]) * (n - 1), freq=FREQ[tf], wick=0.3)
     df.attrs.update({"instrument": resolve_symbol("BTCUSDT").to_dict(), "last_bar_closed": closed})
@@ -146,7 +148,8 @@ def test_api_endpoints(tmp_path):
         c = client.get("/api/candles", params={"tf": "4h"}).json()
         assert c["tf"] == "4H" and len(c["candles"]) == 1 + sum(LEGS) and c["precision"] == 2
         a = client.get("/api/analysis", params={"tf": "1H"}).json()
-        assert a["overlays"]["tf"] == "1H" and a["cascade"]["stages"] and a["plan"]["status"] in ("valid", "no_valid_setup", "no_setup")
+        assert a["overlays"]["tf"] == "1H" and a["cascade"]["stages"]
+        assert a["plan"]["status"] in ("valid", "no_valid_setup", "no_setup")
         assert client.get("/api/candles", params={"tf": "7h"}).status_code == 400
         assert client.get("/api/journal").json()["stats"]["total"] == 0
         assert client.get("/").status_code == 200 and "lightweight-charts" in client.get("/").text

@@ -3,3 +3,5 @@
 -r skills/smc-analyst/scripts/requirements.txt
 pytest==9.2.0
 httpx2==2.16.0  # used by starlette.testclient (FastAPI TestClient)
+ruff==0.17.3    # lint (CI)
+pillow==13.0.0  # tools/make_media.py: README screenshots and hero GIF

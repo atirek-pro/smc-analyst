@@ -205,6 +205,14 @@
     const { bottom, top } = buildShapes();
     S.bottom.setShapes(bottom);
     S.top.setShapes(top);
+    // Keep the plan's entry, stop and TP1 on screen (TP2/TP3 may be far away and would squash candles).
+    const plan = S.analysis && S.analysis.plan;
+    if (S.layers.position && plan && plan.entry != null) {
+      const lv = [plan.entry, plan.stop_loss, plan.targets.length ? plan.targets[0].price : plan.entry];
+      S.top.setAutoscale(Math.min(...lv), Math.max(...lv));
+    } else {
+      S.top.setAutoscale(NaN, NaN);
+    }
     renderLegend();
   }
 
@@ -428,12 +436,15 @@
   function hideLoading() { $('loading').hidden = true; }
 
   function buildLayers() {
-    const saved = store.get('layers', {});
+    // ?layers=ob,fvg shows exactly those layers (a shareable view); otherwise saved preferences.
+    const only = new URLSearchParams(location.search).get('layers');
+    const pick = only ? new Set(only.split(',').map((s) => s.trim().toLowerCase())) : null;
+    const saved = pick ? {} : store.get('layers', {});
     const c = palette();
     const box = $('layers');
     box.innerHTML = '<h2>Layers</h2>';
     for (const [key, label, color, def] of LAYERS) {
-      S.layers[key] = key in saved ? saved[key] : def;
+      S.layers[key] = pick ? pick.has(key) : (key in saved ? saved[key] : def);
       const row = document.createElement('label');
       row.innerHTML = `<input type="checkbox" ${S.layers[key] ? 'checked' : ''}> <span class="swatch" style="background:${c[color] || c.muted}"></span> ${esc(label)}`;
       row.querySelector('input').addEventListener('change', (e) => toggleLayer(key, e.target.checked));
