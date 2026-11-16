@@ -21,4 +21,4 @@ Phase 4 adds trade planning and tracking:
     tracker     signal state machine, JSON journal, catch-up replay, hit rate / average R
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"

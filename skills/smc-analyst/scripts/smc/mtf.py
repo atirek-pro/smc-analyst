@@ -159,6 +159,16 @@ def _candidates(a: "TimeframeAnalysis", bias: int, price: float) -> list[Zone]:
     return [z for z in a.zones.select(direction=bias) if _side_ok(z, price, bias)]
 
 
+def _where(dr: DealingRange, price: float) -> str:
+    """'discount (32%)', or 'discount, below the range' when price has left the dealing range."""
+    pos = dr.position(price)
+    if pos < 0:
+        return f"{dr.zone_of(price)}, below the range"
+    if pos > 1:
+        return f"{dr.zone_of(price)}, above the range"
+    return f"{dr.zone_of(price)} ({pos:.0%})"
+
+
 def _first(analyses: dict, *tfs: str) -> "TimeframeAnalysis | None":
     for tf in tfs:
         if tf in analyses and analyses[tf].bars:
@@ -227,7 +237,7 @@ def _stage1(c: _Ctx) -> StageResult:
     dr = htf.dealing_range
     if dr:
         st.rationale.append(f"{src} dealing range {c.p(dr.low)}-{c.p(dr.high)}, EQ {c.p(dr.eq)}; price "
-                            f"{c.p(c.price)} is in {dr.zone_of(c.price)} ({dr.position(c.price):.0%}).")
+                            f"{c.p(c.price)} is in {_where(dr, c.price)}.")
     pois = sorted(_candidates(htf, bias, c.price), key=lambda z: _distance(z, c.price, bias))[:3]
     c.res.htf_pois = pois
     st.rationale.append("HTF POIs: " + ("; ".join(c.zone(z) for z in pois) if pois
@@ -278,7 +288,7 @@ def _stage2(c: _Ctx) -> StageResult:
     want = "discount" if bias == BULL else "premium"
     if dr:
         st.rationale.append(f"Daily dealing range {c.p(dr.low)}-{c.p(dr.high)}, EQ {c.p(dr.eq)}; price is in "
-                            f"{dr.zone_of(c.price)} ({dr.position(c.price):.0%}).")
+                            f"{_where(dr, c.price)}.")
     cands = _candidates(d, bias, c.price)
     fav = [z for z in cands if dr is None or dr.zone_of(z.mid) == want]
     if not fav:
@@ -612,11 +622,15 @@ def run_cascade(analyses: dict[str, TimeframeAnalysis], inst=None, cfg: dict | N
     return res
 
 
-def analyze_symbol(symbol: str, cfg: dict | None = None, limit: int | None = None
+def analyze_symbol(symbol: "str | data.Instrument", cfg: dict | None = None, limit: int | None = None
                    ) -> tuple[CascadeResult, dict[str, TimeframeAnalysis]]:
-    """Fetch the ladder, analyse every timeframe and run the cascade."""
+    """Fetch the ladder, analyse every timeframe and run the cascade.
+
+    ``symbol`` may be a string or an already-resolved :class:`data.Instrument` (e.g. one
+    forced to an asset class after the user clarified an ambiguous input).
+    """
     cfg = cfg or get_config()
-    inst = data.resolve_symbol(symbol)
+    inst = symbol if isinstance(symbol, data.Instrument) else data.resolve_symbol(symbol)
     tfs = list(cfg["timeframes"]["ladder"])
     if cfg["timeframes"].get("include_monthly") and "1M" not in tfs:
         tfs.insert(0, "1M")

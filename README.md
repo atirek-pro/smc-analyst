@@ -2,11 +2,11 @@
 
 > Top-down **Smart Money Concepts (SMC / ICT)** analysis for stocks, crypto and forex. It opens a **live candlestick dashboard** with every concept drawn on the chart and produces a **tracked trade plan**.
 
-![status](https://img.shields.io/badge/status-phase%205%20of%207-orange) ![license](https://img.shields.io/badge/license-MIT-blue) ![python](https://img.shields.io/badge/python-3.12%2B-blue)
+![status](https://img.shields.io/badge/status-phase%206%20of%207-orange) ![license](https://img.shields.io/badge/license-MIT-blue) ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 
-> 🚧 **Work in progress.** Phases 1–5 (scaffold, market-data layer, SMC engine with the top-down cascade, trade plan with live tracking, and the live dashboard) are complete. The full Claude report workflow lands in Phase 6. See [PLAN.md](PLAN.md).
+> **Usable now.** Phases 1–6 are complete: market data, the SMC engine with its top-down cascade, the trade plan with live tracking, the live dashboard and the Claude workflow. Phase 7 (CI and release polish) is next. See [PLAN.md](PLAN.md).
 
-## What it will do
+## What it does
 
 Ask Claude _"Do an SMC analysis on BTCUSDT"_ and the skill will:
 
@@ -31,6 +31,28 @@ npx skills add atirek-pro/smc-analyst -a claude-code
 /plugin install smc-analyst@smc-analyst-marketplace
 ```
 
+## Usage
+
+Just ask in Claude Code:
+
+- *"Do a smart money concepts analysis on BTCUSDT"*
+- *"SMC top-down on EURUSD for a 10k account risking 1%"*
+- *"Any order block setups on AAPL? Track the signal if it's valid."*
+- *"How did my tracked signals do?"*
+
+The first run installs the skill's Python environment (one time). Claude then runs the analysis, presents the
+report (verdict, stage-by-stage top-down read, alignment table, trade plan or "no setup — waiting for X", opposite
+scenario, hedge, risks) and opens the live dashboard. Ambiguous symbols (e.g. `SOL`: Solana or the stock?) are
+clarified first; exchange prefixes like `NASDAQ:SOL`, `BINANCE:SOLUSDT` or `NSE:RELIANCE` are understood.
+
+Scripts can also be run directly (with the skill's `.venv` Python):
+
+```bash
+python skills/smc-analyst/scripts/analyze.py --symbol EURUSD --format markdown
+python skills/smc-analyst/scripts/serve.py --symbol EURUSD     # live dashboard
+python skills/smc-analyst/scripts/serve.py --stop
+```
+
 ## Requirements
 
 - Python **3.12+**. The skill builds its own isolated virtualenv on first use.
@@ -43,8 +65,9 @@ npx skills add atirek-pro/smc-analyst -a claude-code
 skills/smc-analyst/
   SKILL.md               instructions Claude follows
   config.default.json    tunable defaults (override with config.json)
-  references/            methodology + top-down workflow rules
+  references/            methodology, workflow, trade-plan rules, symbols, report format
   scripts/setup.py       environment bootstrap
+  scripts/analyze.py     single entry point: analysis + trade plan + report (JSON / markdown)
   scripts/smc/           engine: data layer (Phase 2), SMC detection + cascade (Phase 3)
   scripts/serve.py       live dashboard server (FastAPI + WebSocket)
   assets/dashboard/      chart UI (Lightweight Charts 5.2.1, vendored)

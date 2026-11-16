@@ -197,6 +197,19 @@ INDEX_SESSIONS = {
 }
 
 _STOCK_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-&]{0,14}$")
+
+ASSET_CLASSES = ("crypto", "forex", "stock", "index", "commodity")
+# TradingView-style "EXCHANGE:SYMBOL" prefixes -> (asset class, Yahoo suffix to append)
+EXCHANGE_PREFIXES: dict[str, tuple[str, str]] = {
+    "BINANCE": ("crypto", ""), "COINBASE": ("crypto", ""), "BYBIT": ("crypto", ""), "KRAKEN": ("crypto", ""),
+    "OKX": ("crypto", ""), "FX": ("forex", ""), "OANDA": ("forex", ""), "FOREXCOM": ("forex", ""),
+    "FX_IDC": ("forex", ""), "PEPPERSTONE": ("forex", ""), "NASDAQ": ("stock", ""), "NYSE": ("stock", ""),
+    "AMEX": ("stock", ""), "NSE": ("stock", ".NS"), "BSE": ("stock", ".BO"), "LSE": ("stock", ".L"),
+    "XETR": ("stock", ".DE"), "TSE": ("stock", ".T"), "HKEX": ("stock", ".HK"), "TSX": ("stock", ".TO"),
+    "ASX": ("stock", ".AX"),
+}
+# Bare inputs that are also real stock tickers on Yahoo (besides bare crypto coins).
+STOCK_HOMONYMS = {"GOLD": "Barrick Gold (NYSE: GOLD)"}
 _PAIR_RE = re.compile(r"^([A-Z0-9]{2,10})[/\-_]([A-Z]{3,5})$")
 
 
@@ -249,21 +262,68 @@ def _yahoo(query: str, symbol: str, yahoo_symbol: str, asset_class: str, tick: f
     )
 
 
-def resolve_symbol(query: str) -> Instrument:
+def _resolve_as(raw: str, s: str, cls: str) -> Instrument:
+    """Resolve ``s`` as a specific asset class (explicit prefix or clarified input)."""
+    if cls == "stock":
+        if not _STOCK_RE.match(s):
+            raise SymbolError(f"'{raw}' is not a valid stock ticker.")
+        return _yahoo(raw, s, s, "stock", 0.01, "equity")
+    if cls == "crypto":
+        m = _PAIR_RE.match(s)
+        if m:
+            base, quote = m.groups()
+        else:
+            quote = next((q for q in CRYPTO_QUOTES if s.endswith(q) and len(s) > len(q) + 1), None)
+            if quote:
+                base = s[: -len(quote)]
+            elif s.endswith("USD") and len(s) > 4:
+                base, quote = s[:-3], "USDT"
+            else:
+                base, quote = s, "USDT"
+        return _crypto(raw, base, quote)
+    if cls == "forex":
+        pair = re.sub(r"[/\-_]|=X$", "", s)
+        if len(pair) == 6 and pair[:3] in FIAT and pair[3:] in FIAT:
+            return _forex(raw, pair[:3], pair[3:])
+        raise SymbolError(f"'{raw}' is not a currency pair like EURUSD.")
+    if s in ALIASES and ALIASES[s][1] == cls:
+        ysym, acls, tick, session, note = ALIASES[s]
+        return _yahoo(raw, s, ysym, acls, tick, session, note)
+    if cls == "commodity" and not s.endswith("=F"):
+        raise SymbolError(f"'{raw}' is not a known commodity. Use XAUUSD, XAGUSD, USOIL, UKOIL, NATGAS "
+                          f"or a Yahoo futures symbol such as GC=F.")
+    return _yahoo(raw, s, s, cls, 0.01, "futures" if s.endswith("=F") else "equity")
+
+
+def resolve_symbol(query: str, asset_class: str | None = None) -> Instrument:
     """Turn user input into an :class:`Instrument` (offline, no network calls).
 
     Examples: ``BTCUSDT``, ``btc/usdt``, ``BTC``, ``BINANCE:ETHUSDT`` → crypto;
     ``EURUSD``, ``EUR/USD``, ``EURUSD=X`` → forex; ``XAUUSD`` → gold futures;
-    ``AAPL``, ``RELIANCE.NS``, ``BRK-B`` → stocks; ``SPX``, ``NAS100``, ``DXY`` → indices.
+    ``AAPL``, ``RELIANCE.NS``, ``NSE:RELIANCE``, ``BRK-B`` → stocks; ``SPX``, ``NAS100``, ``DXY`` → indices.
+
+    An exchange prefix (``NASDAQ:``, ``BINANCE:``, ``FX:``, ``NSE:`` …) or an explicit
+    ``asset_class`` (crypto | forex | stock | index | commodity) forces that reading, e.g.
+    ``NASDAQ:SOL`` or ``resolve_symbol("SOL", "stock")`` for the stock instead of Solana.
     """
     raw = (query or "").strip()
     if not raw:
         raise SymbolError("Empty symbol. Try something like BTCUSDT, EURUSD, XAUUSD or AAPL.")
+    if asset_class is not None and asset_class.lower() not in ASSET_CLASSES:
+        raise SymbolError(f"Unknown asset class '{asset_class}'. Use one of: {', '.join(ASSET_CLASSES)}.")
     s = raw.upper().replace(" ", "")
+    forced = asset_class.lower() if asset_class else None
     if ":" in s:  # TradingView-style "EXCHANGE:SYMBOL"
-        s = s.split(":", 1)[1]
+        prefix, s = s.split(":", 1)
+        if prefix in EXCHANGE_PREFIXES and s:
+            pcls, suffix = EXCHANGE_PREFIXES[prefix]
+            forced = forced or pcls
+            if suffix and not s.endswith(suffix):
+                s += suffix
     if not s:
         raise SymbolError(f"Could not read a symbol from '{raw}'.")
+    if forced:
+        return _resolve_as(raw, s, forced)
 
     if s in ALIASES:
         ysym, cls, tick, session, note = ALIASES[s]
@@ -312,6 +372,25 @@ def resolve_symbol(query: str) -> Instrument:
         f"Could not recognise '{raw}'. Use a ticker like AAPL / RELIANCE.NS, a pair like "
         f"EURUSD, or a crypto pair like BTCUSDT."
     )
+
+
+def alternative_readings(query: str) -> list[Instrument]:
+    """Other plausible meanings of a *bare* input, so the caller can ask the user.
+
+    ``SOL`` → Solana (default) but also a stock ticker; ``GOLD`` → gold futures (default)
+    but also Barrick Gold. Prefixed or pair-style inputs are unambiguous and return [].
+    """
+    s = (query or "").strip().upper()
+    if not s or ":" in s or not s.isalnum():
+        return []
+    inst = resolve_symbol(query)
+    alts: list[Instrument] = []
+    if inst.asset_class == "crypto" and s in KNOWN_CRYPTO:
+        alts.append(replace(resolve_symbol(s, "stock"),
+                            data_note="Possible stock ticker with the same name (Yahoo Finance)"))
+    if s in STOCK_HOMONYMS and inst.asset_class != "stock":
+        alts.append(replace(resolve_symbol(s, "stock"), data_note=STOCK_HOMONYMS[s]))
+    return alts
 
 
 # =============================================================================

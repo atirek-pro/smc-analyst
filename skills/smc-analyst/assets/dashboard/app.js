@@ -519,7 +519,10 @@
     createChart();
     const meta = await waitReady();
     buildTFSwitch();
-    const wanted = params.get('tf') || store.get('tf.' + meta.symbol, null);
+    // Accept lowercase deep links (?tf=4h, 1d, 1w). Minutes stay lowercase: 1m = minute, 1M = month.
+    const rawTf = params.get('tf');
+    const linkTf = rawTf && /^\d+[hdw]$/i.test(rawTf) ? rawTf.toUpperCase() : rawTf;
+    const wanted = linkTf || store.get('tf.' + meta.symbol, null);
     await setTF(meta.timeframes.includes(wanted) ? wanted : meta.default_tf);
     connectWS();
     loadJournal();

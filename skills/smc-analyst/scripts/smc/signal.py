@@ -538,6 +538,12 @@ def build_trade_plan(res: CascadeResult, analyses: dict[str, TimeframeAnalysis],
         plan.status, plan.primary_target = "valid", primary.name
         plan.reason = (f"{primary.name} at {fmt_price(primary.price, inst.tick_size)} gives {primary.rr:.2f}R "
                        f"(minimum {plan.min_rr:g}R).")
+    tp1 = plan.targets[0]
+    if not _beyond(tp1.price, res.price, bias):
+        # Price already trades at/through TP1: the move this setup was built for has happened.
+        plan.status, plan.primary_target = "no_valid_setup", None
+        plan.reason = (f"Price {fmt_price(res.price, inst.tick_size)} has already reached TP1 "
+                       f"{fmt_price(tp1.price, inst.tick_size)}: the move has played out. Wait for a new setup.")
     if plan.entry_type == "market":
         plan.notes.append("Price is already at/inside the entry zone: entry is at market.")
     else:

@@ -245,6 +245,20 @@ def test_stop_and_running_with_stale_pid_file(tmp_path):
     assert serve.stop_server(pid_file)["status"] == "stale_pid_file_removed" and not pid_file.exists()
 
 
+def test_detached_command_drops_parent_only_flags():
+    cmd = serve.detached_command(["--symbol", "BTCUSDT", "--detach", "--replace", "--json", "--account", "10000"])
+    assert cmd[1].endswith("serve.py") and cmd[0]
+    assert cmd[2:] == ["--symbol", "BTCUSDT", "--json", "--account", "10000"]
+
+
+def test_start_detached_reports_failure_with_log_tail(tmp_path, monkeypatch):
+    monkeypatch.setattr(serve, "LOG_FILE", tmp_path / "server.log")
+    monkeypatch.setattr(serve, "running_server", lambda *a: None)
+    # The child exits immediately (bad symbol), so the parent must give up quickly and say why.
+    res = serve.start_detached(["--symbol", "!!!", "--json", "--no-browser"], "X", timeout=20)
+    assert res["status"] == "error" and "exit code 1" in res["message"] and "error" in res["log_tail"]
+
+
 def test_cli_rejects_bad_symbol(capsys):
     assert serve.main(["--symbol", "!!!", "--json"]) == 1
     assert json.loads(capsys.readouterr().out)["status"] == "error"
