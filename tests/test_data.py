@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 import pytest
 
 from smc import data
 from smc.data import DataError, SymbolError
-
 
 # --- timeframes -----------------------------------------------------------------
 
@@ -37,8 +36,8 @@ def test_bar_close_time_month_is_calendar_aware():
 
 def test_is_bar_closed():
     t = pd.Timestamp("2026-01-01 10:00", tz="UTC")
-    assert not data.is_bar_closed(t, "1H", datetime(2026, 1, 1, 10, 59, tzinfo=timezone.utc))
-    assert data.is_bar_closed(t, "1H", datetime(2026, 1, 1, 11, 0, tzinfo=timezone.utc))
+    assert not data.is_bar_closed(t, "1H", datetime(2026, 1, 1, 10, 59, tzinfo=UTC))
+    assert data.is_bar_closed(t, "1H", datetime(2026, 1, 1, 11, 0, tzinfo=UTC))
 
 
 # --- symbol resolution -----------------------------------------------------------
@@ -295,7 +294,7 @@ def test_get_ohlcv_notes_short_history(monkeypatch):
 # --- market hours (New York is on EST, UTC-5, in mid-November 2026) ----------------------------
 
 def utc(*a):
-    return datetime(*a, tzinfo=timezone.utc)
+    return datetime(*a, tzinfo=UTC)
 
 
 def test_crypto_always_open():

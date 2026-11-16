@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from smc_builders import candles, zigzag
 
 from smc.structure import analyze_structure
 from smc.swings import alternate, extreme_between, find_swings, swings_known_at
+
+from smc_builders import candles, zigzag
 
 UP = [100, 120, 105, 130, 115, 140]
 

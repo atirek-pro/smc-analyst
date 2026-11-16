@@ -27,12 +27,13 @@ import math
 import os
 import re
 import time
+from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass, replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from datetime import time as dtime
 from decimal import Decimal
 from pathlib import Path
-from typing import Callable, Iterable, TypeVar
+from typing import TypeVar
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -101,7 +102,7 @@ def bar_close_time(open_time: pd.Timestamp, tf: str) -> pd.Timestamp:
 
 
 def is_bar_closed(open_time: pd.Timestamp, tf: str, now: datetime | None = None) -> bool:
-    now_ts = pd.Timestamp(now or datetime.now(timezone.utc))
+    now_ts = pd.Timestamp(now or datetime.now(UTC))
     if now_ts.tzinfo is None:
         now_ts = now_ts.tz_localize("UTC")
     return bar_close_time(open_time, tf) <= now_ts
@@ -422,7 +423,7 @@ def round_frame(df: pd.DataFrame, tick: float) -> pd.DataFrame:
 # Retry helper
 # =============================================================================
 
-def with_retries(fn: Callable[[], T], *, attempts: int = 4, base_delay: float = 1.5,
+def with_retries[T](fn: Callable[[], T], *, attempts: int = 4, base_delay: float = 1.5,
                  retry_on: tuple[type[BaseException], ...] = (Exception,),
                  no_retry: tuple[type[BaseException], ...] = (SymbolError,),
                  sleep: Callable[[float], None] = time.sleep) -> T:
@@ -799,7 +800,7 @@ def get_ohlcv(symbol: str | Instrument, tf: str, limit: int | None = None, *,
         "timeframe": tf,
         "provider": inst.provider,
         "from_cache": from_cache,
-        "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "last_bar_closed": bool(is_bar_closed(last_open, tf)),
         "bars": len(df),
     })
@@ -876,9 +877,9 @@ def market_status(inst: Instrument, now: datetime | None = None) -> dict:
 
     Exchange holidays are not modelled; a holiday shows as "open" with no new candles.
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     if now.tzinfo is None:
-        now = now.replace(tzinfo=timezone.utc)
+        now = now.replace(tzinfo=UTC)
     is_open = _is_open_at(inst, now)
     if is_open is None:
         return {"state": "unknown", "reason": "exchange hours unknown for this symbol", "next_open": None}
@@ -891,7 +892,7 @@ def market_status(inst: Instrument, now: datetime | None = None) -> dict:
     for _ in range(4 * 24 * 12):
         if _is_open_at(inst, t):
             return {"state": "closed", "reason": "outside trading session",
-                    "next_open": t.astimezone(timezone.utc).isoformat(timespec="minutes")}
+                    "next_open": t.astimezone(UTC).isoformat(timespec="minutes")}
         t += timedelta(minutes=5)
     return {"state": "closed", "reason": "outside trading session", "next_open": None}
 

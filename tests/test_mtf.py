@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 
 import pandas as pd
-import pytest
-from smc_builders import T0, candles, zigzag
 
 from smc.config import load_config
 from smc.data import resolve_symbol
@@ -14,8 +12,9 @@ from smc.liquidity import LiquidityLevel, LiquidityResult
 from smc.mtf import CONFLUENCE_FACTORS, TimeframeAnalysis, analyze_timeframe, run_cascade
 from smc.pd_array import DealingRange
 from smc.structure import StructureBreak, StructureResult
-from smc.swings import Swing
 from smc.zones import Zone, ZoneResult
+
+from smc_builders import T0, candles, zigzag
 
 CFG = load_config()
 BTC = resolve_symbol("BTCUSDT")

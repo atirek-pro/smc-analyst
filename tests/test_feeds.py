@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -46,7 +46,7 @@ def bars(closes, start="2026-11-16 10:00"):
 
 def test_diff_bars_emits_only_changes():
     seen: dict = {}
-    now = datetime(2026, 11, 16, 10, 40, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 16, 10, 40, tzinfo=UTC)
     first = feeds.diff_bars(bars([1.10, 1.11, 1.12]), seen, EUR, "15m", "yahoo-poll", now)
     assert len(first) == 3
     assert [e["closed"] for e in first] == [True, True, False]
@@ -58,9 +58,9 @@ def test_diff_bars_emits_only_changes():
 def test_diff_bars_marks_bar_closed_when_time_passes():
     seen: dict = {}
     df = bars([1.10, 1.11, 1.12])
-    feeds.diff_bars(df, seen, EUR, "15m", "yahoo-poll", datetime(2026, 11, 16, 10, 40, tzinfo=timezone.utc))
+    feeds.diff_bars(df, seen, EUR, "15m", "yahoo-poll", datetime(2026, 11, 16, 10, 40, tzinfo=UTC))
     later = feeds.diff_bars(df, seen, EUR, "15m", "yahoo-poll",
-                            datetime(2026, 11, 16, 10, 46, tzinfo=timezone.utc))
+                            datetime(2026, 11, 16, 10, 46, tzinfo=UTC))
     assert len(later) == 1 and later[0]["closed"] is True
 
 

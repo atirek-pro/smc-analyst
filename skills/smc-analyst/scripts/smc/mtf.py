@@ -24,7 +24,7 @@ import json
 import logging
 import math
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -155,7 +155,7 @@ def _distance(z: Zone, price: float, bias: int) -> float:
     return max(0.0, price - z.top) if bias == BULL else max(0.0, z.bottom - price)
 
 
-def _candidates(a: "TimeframeAnalysis", bias: int, price: float) -> list[Zone]:
+def _candidates(a: TimeframeAnalysis, bias: int, price: float) -> list[Zone]:
     return [z for z in a.zones.select(direction=bias) if _side_ok(z, price, bias)]
 
 
@@ -169,7 +169,7 @@ def _where(dr: DealingRange, price: float) -> str:
     return f"{dr.zone_of(price)} ({pos:.0%})"
 
 
-def _first(analyses: dict, *tfs: str) -> "TimeframeAnalysis | None":
+def _first(analyses: dict, *tfs: str) -> TimeframeAnalysis | None:
     for tf in tfs:
         if tf in analyses and analyses[tf].bars:
             return analyses[tf]
@@ -604,7 +604,7 @@ def run_cascade(analyses: dict[str, TimeframeAnalysis], inst=None, cfg: dict | N
     lowest = next((analyses[tf] for tf in reversed(TF_ORDER) if tf in analyses and analyses[tf].bars), None)
     price = lowest.price if lowest else math.nan
     res = CascadeResult(symbol=getattr(inst, "symbol", "?"), asset_class=getattr(inst, "asset_class", "?"),
-                        price=price, generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+                        price=price, generated_at=datetime.now(UTC).isoformat(timespec="seconds"))
     c = _Ctx(analyses, res, inst, cfg)
     for stage_fn in (_stage1, _stage2, _stage3, _stage4, _stage5):
         st = stage_fn(c)
@@ -622,7 +622,7 @@ def run_cascade(analyses: dict[str, TimeframeAnalysis], inst=None, cfg: dict | N
     return res
 
 
-def analyze_symbol(symbol: "str | data.Instrument", cfg: dict | None = None, limit: int | None = None
+def analyze_symbol(symbol: str | data.Instrument, cfg: dict | None = None, limit: int | None = None
                    ) -> tuple[CascadeResult, dict[str, TimeframeAnalysis]]:
     """Fetch the ladder, analyse every timeframe and run the cascade.
 

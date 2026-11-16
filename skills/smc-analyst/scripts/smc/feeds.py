@@ -28,8 +28,8 @@ import argparse
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -46,7 +46,7 @@ CLOSED_MARKET_POLL = 300.0
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def status_event(inst: Instrument, tf: str, state: str, message: str = "") -> dict:
@@ -102,8 +102,8 @@ async def _binance_ws(inst: Instrument, tf: str, stop: asyncio.Event) -> AsyncIt
                 while not stop.is_set():
                     try:
                         msg = await asyncio.wait_for(ws.recv(), timeout=60)
-                    except asyncio.TimeoutError:
-                        raise ConnectionError("no data from Binance for 60 s")
+                    except TimeoutError:
+                        raise ConnectionError("no data from Binance for 60 s") from None
                     event = parse_binance_kline(msg, inst, tf)
                     if event:
                         yield event
@@ -132,7 +132,7 @@ async def _binance_ws(inst: Instrument, tf: str, stop: asyncio.Event) -> AsyncIt
 async def _sleep(seconds: float, stop: asyncio.Event) -> None:
     try:
         await asyncio.wait_for(stop.wait(), timeout=seconds)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pass
 
 
@@ -235,7 +235,7 @@ async def _cli(symbol: str, tf: str, updates: int, timeout: float) -> int:
 
     try:
         await asyncio.wait_for(consume(), timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         stop.set()
         print(json.dumps({"type": "cli", "message": f"timeout after {timeout:.0f}s with "
                           f"{count} candle updates"}))

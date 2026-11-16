@@ -80,10 +80,10 @@ class Zone:
         """Edge that invalidates the zone when closed beyond."""
         return self.bottom if self.direction == BULL else self.top
 
-    def overlaps(self, other: "Zone", tolerance: float = 0.0) -> bool:
+    def overlaps(self, other: Zone, tolerance: float = 0.0) -> bool:
         return self.bottom <= other.top + tolerance and other.bottom <= self.top + tolerance
 
-    def overlap_amount(self, other: "Zone") -> float:
+    def overlap_amount(self, other: Zone) -> float:
         return max(0.0, min(self.top, other.top) - max(self.bottom, other.bottom))
 
     def label(self) -> str:

@@ -6,8 +6,6 @@ import json
 import re
 
 import pytest
-from test_mtf import BTC, CFG, bullish_htf, ta
-from test_signal import ready_case
 
 import analyze
 from smc import data
@@ -15,6 +13,9 @@ from smc.config import SKILL_DIR
 from smc.mtf import run_cascade
 from smc.signal import build_trade_plan
 from smc.tracker import Journal
+
+from test_mtf import BTC, CFG, bullish_htf, ta
+from test_signal import ready_case
 
 REFS = SKILL_DIR / "references"
 

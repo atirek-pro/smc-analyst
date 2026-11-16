@@ -1,0 +1,658 @@
+{
+  "status": "ok",
+  "mode": "analysis",
+  "version": "<version>",
+  "generated_at": "<now>",
+  "symbol": "BTCUSDT",
+  "instrument": {
+    "query": "BTCUSDT",
+    "symbol": "BTCUSDT",
+    "asset_class": "crypto",
+    "provider": "binance",
+    "provider_symbol": "BTCUSDT",
+    "tick_size": 0.01,
+    "session": "24x7",
+    "session_tz": "UTC",
+    "session_hours": "",
+    "realtime": true,
+    "data_note": "Real-time (Binance public market data)",
+    "validated": false,
+    "price_precision": 2
+  },
+  "market": {
+    "state": "open",
+    "reason": "24/7 market",
+    "next_open": null
+  },
+  "timeframes": [
+    "1W",
+    "1D",
+    "4H",
+    "15m"
+  ],
+  "summary": {
+    "headline": "BTCUSDT: bullish bias (1W) - READY - confirmed setup; valid LONG plan, TP1 at 3.78R",
+    "bias": "bullish",
+    "bias_source": "1W",
+    "setup_status": "ready",
+    "confluence": 75,
+    "waiting_for": null,
+    "plan_status": "valid",
+    "side": "long"
+  },
+  "cascade": {
+    "symbol": "BTCUSDT",
+    "asset_class": "crypto",
+    "price": 105.0,
+    "generated_at": "<now>",
+    "status": "ready",
+    "bias": 1,
+    "bias_source": "1W",
+    "waiting_for": null,
+    "stages": [
+      {
+        "stage": 1,
+        "name": "HTF bias",
+        "timeframes": [
+          "1W"
+        ],
+        "status": "passed",
+        "rationale": [
+          "1W swing structure is bullish: last BOS through 100.00 on 2026-01-05 05:00 UTC.",
+          "HTF POIs: no unmitigated bullish 1W POI on the entry side.",
+          "Draw on liquidity: PWH at 130.00 (buy-side)."
+        ],
+        "outputs": {
+          "bias": "bullish",
+          "source": "1W",
+          "pois": [],
+          "draw_on_liquidity": {
+            "price": 130,
+            "side": "buy",
+            "kind": "PWH",
+            "time": "2026-01-05T00:00:00+00:00",
+            "active_from": "2026-01-05T00:00:00+00:00",
+            "index": null,
+            "touches": 1,
+            "status": "resting",
+            "status_index": null,
+            "status_time": null
+          },
+          "dealing_range": null
+        }
+      },
+      {
+        "stage": 2,
+        "name": "Daily confirmation and target POI",
+        "timeframes": [
+          "1D"
+        ],
+        "status": "passed",
+        "rationale": [
+          "Daily structure agrees: BOS bullish through 100.00 on 2026-01-05 05:00 UTC.",
+          "Daily dealing range 90.00-130.00, EQ 110.00; price is in discount (38%).",
+          "Target POI: 1D bullish OB 95.00-100.00 (fresh) (no HTF POI overlap).",
+          "Daily draw on liquidity: PDH at 120.00."
+        ],
+        "outputs": {
+          "target_poi": {
+            "kind": "order_block",
+            "direction": 1,
+            "top": 100,
+            "bottom": 95,
+            "index": 0,
+            "time": "2026-01-05T00:00:00+00:00",
+            "created_index": 0,
+            "created_time": "2026-01-05T00:00:00+00:00",
+            "timeframe": "1D",
+            "source": "test",
+            "state": "fresh",
+            "mitigated_index": null,
+            "mitigated_time": null,
+            "invalidated_index": null,
+            "invalidated_time": null,
+            "direction_name": "bullish",
+            "mid": 97.5
+          },
+          "daily_dol": {
+            "price": 120,
+            "side": "buy",
+            "kind": "PDH",
+            "time": "2026-01-05T00:00:00+00:00",
+            "active_from": "2026-01-05T00:00:00+00:00",
+            "index": null,
+            "touches": 1,
+            "status": "resting",
+            "status_index": null,
+            "status_time": null
+          },
+          "price_zone": "discount"
+        }
+      },
+      {
+        "stage": 3,
+        "name": "4H refinement and inducement",
+        "timeframes": [
+          "4H"
+        ],
+        "status": "passed",
+        "rationale": [
+          "Refined POI: 4H bullish OB 96.00-99.00 (fresh) inside the daily POI.",
+          "4H swing structure is bullish, aligned with the bias.",
+          "4H internal structure is neutral.",
+          "No inducement pivot in front of the POI yet."
+        ],
+        "outputs": {
+          "refined_poi": {
+            "kind": "order_block",
+            "direction": 1,
+            "top": 99,
+            "bottom": 96,
+            "index": 0,
+            "time": "2026-01-05T00:00:00+00:00",
+            "created_index": 0,
+            "created_time": "2026-01-05T00:00:00+00:00",
+            "timeframe": "4H",
+            "source": "test",
+            "state": "fresh",
+            "mitigated_index": null,
+            "mitigated_time": null,
+            "invalidated_index": null,
+            "invalidated_time": null,
+            "direction_name": "bullish",
+            "mid": 97.5
+          },
+          "inducement": null,
+          "trend_4h": "bullish"
+        }
+      },
+      {
+        "stage": 4,
+        "name": "POI tap and LTF confirmation",
+        "timeframes": [
+          "15m"
+        ],
+        "status": "passed",
+        "rationale": [
+          "Price tapped the POI on 15m at 2026-01-05 01:15 UTC.",
+          "Liquidity sweep at the POI: swing low 98.00 on 2026-01-05 01:30 UTC.",
+          "Confirmation: bullish CHoCH (internal) through 102 on 2026-01-05 02:15."
+        ],
+        "outputs": {
+          "tap_time": "2026-01-05T01:15:00+00:00",
+          "sweep": {
+            "price": 98.0,
+            "side": "sell",
+            "kind": "swing_low",
+            "time": "2026-01-05T00:15:00+00:00",
+            "active_from": "2026-01-05T00:15:00+00:00",
+            "index": null,
+            "touches": 1,
+            "status": "swept",
+            "status_index": 6,
+            "status_time": "2026-01-05T01:30:00+00:00"
+          },
+          "confirmation": {
+            "kind": "CHoCH",
+            "direction": 1,
+            "level": 102.0,
+            "swing_index": 5,
+            "swing_time": "2026-01-05T01:15:00+00:00",
+            "break_index": 9,
+            "break_time": "2026-01-05T02:15:00+00:00",
+            "origin_index": 6,
+            "origin_time": "2026-01-05T01:30:00+00:00",
+            "structure": "internal",
+            "direction_name": "bullish"
+          }
+        }
+      },
+      {
+        "stage": 5,
+        "name": "Entry refinement",
+        "timeframes": [
+          "15m"
+        ],
+        "status": "passed",
+        "rationale": [
+          "Entry zone: 15m bullish OB 97.50-99.50 (fresh), created by the confirming leg.",
+          "Invalidation (extreme of the leg that made the CHoCH, 2026-01-05 01:30 UTC): 97.50.",
+          "Targets: internal swing high 108.00; external PDH 120.00; external PWH 130.00.",
+          "Entry zone not retested yet since confirmation."
+        ],
+        "outputs": {
+          "entry_zone": {
+            "kind": "order_block",
+            "direction": 1,
+            "top": 99.5,
+            "bottom": 97.5,
+            "index": 6,
+            "time": "2026-01-05T02:15:00+00:00",
+            "created_index": 6,
+            "created_time": "2026-01-05T02:15:00+00:00",
+            "timeframe": "15m",
+            "source": "test",
+            "state": "fresh",
+            "mitigated_index": null,
+            "mitigated_time": null,
+            "invalidated_index": null,
+            "invalidated_time": null,
+            "direction_name": "bullish",
+            "mid": 98.5
+          },
+          "invalidation_level": 97.5,
+          "targets": [
+            {
+              "role": "internal",
+              "level": {
+                "price": 108,
+                "side": "buy",
+                "kind": "swing_high",
+                "time": "2026-01-05T00:30:00+00:00",
+                "active_from": "2026-01-05T00:30:00+00:00",
+                "index": null,
+                "touches": 1,
+                "status": "resting",
+                "status_index": null,
+                "status_time": null
+              }
+            },
+            {
+              "role": "external",
+              "level": {
+                "price": 120,
+                "side": "buy",
+                "kind": "PDH",
+                "time": "2026-01-05T00:00:00+00:00",
+                "active_from": "2026-01-05T00:00:00+00:00",
+                "index": null,
+                "touches": 1,
+                "status": "resting",
+                "status_index": null,
+                "status_time": null
+              }
+            },
+            {
+              "role": "external",
+              "level": {
+                "price": 130,
+                "side": "buy",
+                "kind": "PWH",
+                "time": "2026-01-05T00:00:00+00:00",
+                "active_from": "2026-01-05T00:00:00+00:00",
+                "index": null,
+                "touches": 1,
+                "status": "resting",
+                "status_index": null,
+                "status_time": null
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "htf_pois": [],
+    "target_poi": {
+      "kind": "order_block",
+      "direction": 1,
+      "top": 100,
+      "bottom": 95,
+      "index": 0,
+      "time": "2026-01-05T00:00:00+00:00",
+      "created_index": 0,
+      "created_time": "2026-01-05T00:00:00+00:00",
+      "timeframe": "1D",
+      "source": "test",
+      "state": "fresh",
+      "mitigated_index": null,
+      "mitigated_time": null,
+      "invalidated_index": null,
+      "invalidated_time": null,
+      "direction_name": "bullish",
+      "mid": 97.5
+    },
+    "refined_poi": {
+      "kind": "order_block",
+      "direction": 1,
+      "top": 99,
+      "bottom": 96,
+      "index": 0,
+      "time": "2026-01-05T00:00:00+00:00",
+      "created_index": 0,
+      "created_time": "2026-01-05T00:00:00+00:00",
+      "timeframe": "4H",
+      "source": "test",
+      "state": "fresh",
+      "mitigated_index": null,
+      "mitigated_time": null,
+      "invalidated_index": null,
+      "invalidated_time": null,
+      "direction_name": "bullish",
+      "mid": 97.5
+    },
+    "inducement": null,
+    "tap_time": "2026-01-05T01:15:00+00:00",
+    "sweep": {
+      "price": 98.0,
+      "side": "sell",
+      "kind": "swing_low",
+      "time": "2026-01-05T00:15:00+00:00",
+      "active_from": "2026-01-05T00:15:00+00:00",
+      "index": null,
+      "touches": 1,
+      "status": "swept",
+      "status_index": 6,
+      "status_time": "2026-01-05T01:30:00+00:00"
+    },
+    "confirmation": {
+      "kind": "CHoCH",
+      "direction": 1,
+      "level": 102.0,
+      "swing_index": 5,
+      "swing_time": "2026-01-05T01:15:00+00:00",
+      "break_index": 9,
+      "break_time": "2026-01-05T02:15:00+00:00",
+      "origin_index": 6,
+      "origin_time": "2026-01-05T01:30:00+00:00",
+      "structure": "internal",
+      "direction_name": "bullish"
+    },
+    "entry_zone": {
+      "kind": "order_block",
+      "direction": 1,
+      "top": 99.5,
+      "bottom": 97.5,
+      "index": 6,
+      "time": "2026-01-05T02:15:00+00:00",
+      "created_index": 6,
+      "created_time": "2026-01-05T02:15:00+00:00",
+      "timeframe": "15m",
+      "source": "test",
+      "state": "fresh",
+      "mitigated_index": null,
+      "mitigated_time": null,
+      "invalidated_index": null,
+      "invalidated_time": null,
+      "direction_name": "bullish",
+      "mid": 98.5
+    },
+    "invalidation_level": 97.5,
+    "targets": [
+      {
+        "role": "internal",
+        "level": {
+          "price": 108,
+          "side": "buy",
+          "kind": "swing_high",
+          "time": "2026-01-05T00:30:00+00:00",
+          "active_from": "2026-01-05T00:30:00+00:00",
+          "index": null,
+          "touches": 1,
+          "status": "resting",
+          "status_index": null,
+          "status_time": null
+        }
+      },
+      {
+        "role": "external",
+        "level": {
+          "price": 120,
+          "side": "buy",
+          "kind": "PDH",
+          "time": "2026-01-05T00:00:00+00:00",
+          "active_from": "2026-01-05T00:00:00+00:00",
+          "index": null,
+          "touches": 1,
+          "status": "resting",
+          "status_index": null,
+          "status_time": null
+        }
+      },
+      {
+        "role": "external",
+        "level": {
+          "price": 130,
+          "side": "buy",
+          "kind": "PWH",
+          "time": "2026-01-05T00:00:00+00:00",
+          "active_from": "2026-01-05T00:00:00+00:00",
+          "index": null,
+          "touches": 1,
+          "status": "resting",
+          "status_index": null,
+          "status_time": null
+        }
+      }
+    ],
+    "draw_on_liquidity": {
+      "price": 130,
+      "side": "buy",
+      "kind": "PWH",
+      "time": "2026-01-05T00:00:00+00:00",
+      "active_from": "2026-01-05T00:00:00+00:00",
+      "index": null,
+      "touches": 1,
+      "status": "resting",
+      "status_index": null,
+      "status_time": null
+    },
+    "alignment": {
+      "1W": {
+        "swing_trend": "bullish",
+        "internal_trend": "neutral",
+        "last_break": "BOS bullish",
+        "pd_zone": null,
+        "aligned": true
+      },
+      "1D": {
+        "swing_trend": "bullish",
+        "internal_trend": "neutral",
+        "last_break": "BOS bullish",
+        "pd_zone": "discount",
+        "aligned": true
+      },
+      "4H": {
+        "swing_trend": "bullish",
+        "internal_trend": "neutral",
+        "last_break": "BOS bullish",
+        "pd_zone": null,
+        "aligned": true
+      },
+      "15m": {
+        "swing_trend": "bearish",
+        "internal_trend": "bullish",
+        "last_break": null,
+        "pd_zone": null,
+        "aligned": false
+      }
+    },
+    "confluence": {
+      "score": 75,
+      "breakdown": [
+        {
+          "factor": "htf_bias",
+          "points": 15,
+          "max": 15,
+          "note": "bias from 1W"
+        },
+        {
+          "factor": "daily_aligned",
+          "points": 15,
+          "max": 15,
+          "note": "daily aligned"
+        },
+        {
+          "factor": "poi_location",
+          "points": 10,
+          "max": 10,
+          "note": "POI in discount"
+        },
+        {
+          "factor": "htf_overlap",
+          "points": 0,
+          "max": 10,
+          "note": "no HTF overlap"
+        },
+        {
+          "factor": "refined",
+          "points": 10,
+          "max": 10,
+          "note": "4H zone inside daily POI"
+        },
+        {
+          "factor": "inducement",
+          "points": 0,
+          "max": 10,
+          "note": "no inducement found"
+        },
+        {
+          "factor": "sweep",
+          "points": 10,
+          "max": 10,
+          "note": "sweep at POI"
+        },
+        {
+          "factor": "ltf_choch",
+          "points": 10,
+          "max": 10,
+          "note": "15m CHoCH"
+        },
+        {
+          "factor": "entry_zone",
+          "points": 5,
+          "max": 5,
+          "note": "LTF OB/FVG"
+        },
+        {
+          "factor": "timing",
+          "points": 0,
+          "max": 5,
+          "note": "1H internal not aligned"
+        }
+      ]
+    },
+    "warnings": [],
+    "bias_name": "bullish"
+  },
+  "plan": {
+    "symbol": "BTCUSDT",
+    "asset_class": "crypto",
+    "status": "valid",
+    "direction": 1,
+    "price": 105.0,
+    "generated_at": "<now>",
+    "cascade_status": "ready",
+    "confluence": 75,
+    "reason": "TP1 at 108.00 gives 3.78R (minimum 2R).",
+    "waiting_for": null,
+    "entry": 99.5,
+    "entry_mode": "ob_edge",
+    "entry_type": "limit",
+    "stop_loss": 97.25,
+    "risk_per_unit": 2.25,
+    "targets": [
+      {
+        "name": "TP1",
+        "price": 108.0,
+        "rr": 3.78,
+        "source": "swing high (internal)",
+        "timeframe": "15m"
+      },
+      {
+        "name": "TP3",
+        "price": 120.0,
+        "rr": 9.11,
+        "source": "PDH (external DOL)",
+        "timeframe": "1D"
+      }
+    ],
+    "primary_target": "TP1",
+    "best_rr": 9.11,
+    "min_rr": 2.0,
+    "invalidation_level": 97.5,
+    "entry_zone": {
+      "kind": "order_block",
+      "direction": 1,
+      "top": 99.5,
+      "bottom": 97.5,
+      "index": 6,
+      "time": "2026-01-05T02:15:00+00:00",
+      "created_index": 6,
+      "created_time": "2026-01-05T02:15:00+00:00",
+      "timeframe": "15m",
+      "source": "test",
+      "state": "fresh",
+      "mitigated_index": null,
+      "mitigated_time": null,
+      "invalidated_index": null,
+      "invalidated_time": null,
+      "direction_name": "bullish",
+      "mid": 98.5
+    },
+    "entry_timeframe": "15m",
+    "tick_size": 0.01,
+    "position": {
+      "account_size": 10000.0,
+      "account_currency": "USD",
+      "risk_pct": 1.0,
+      "risk_amount": 100.0,
+      "units": 44.444444,
+      "unit_name": "BTC",
+      "notional": 4422.22,
+      "lots": null,
+      "lot_name": null,
+      "quote_to_account": 1.0,
+      "notes": [
+        "USDT treated as USD (stablecoin)."
+      ]
+    },
+    "opposite": {
+      "trigger_level": 97.5,
+      "trigger_rule": "a 15m candle closes below 97.50",
+      "direction": -1,
+      "poi": {
+        "kind": "order_block",
+        "direction": -1,
+        "top": 99.5,
+        "bottom": 97.5,
+        "index": 6,
+        "time": "2026-01-05T02:15:00+00:00",
+        "created_index": 6,
+        "created_time": "2026-01-05T02:15:00+00:00",
+        "timeframe": "15m",
+        "source": "failed 15m bullish OB (flip zone)",
+        "state": "fresh",
+        "mitigated_index": null,
+        "mitigated_time": null,
+        "invalidated_index": null,
+        "invalidated_time": null,
+        "direction_name": "bearish",
+        "mid": 98.5
+      },
+      "entry": 97.5,
+      "stop_loss": 99.75,
+      "target": null,
+      "target_source": null,
+      "rr": null,
+      "valid": false,
+      "note": "No opposing zone nearby; the failed entry zone is expected to flip (breaker).",
+      "side": "short"
+    },
+    "hedge": null,
+    "notes": [
+      "Price has already covered 65% of the way from entry to TP1; the limit entry needs a retrace to 99.50."
+    ],
+    "side": "long"
+  },
+  "tracked_signal": null,
+  "warnings": [],
+  "dashboard_args": [
+    "--symbol",
+    "BTCUSDT",
+    "--account",
+    "10000",
+    "--risk-pct",
+    "1"
+  ],
+  "report_markdown": "## SMC analysis — BTCUSDT (crypto)\n**Verdict:** 🟢 Bullish bias (1W) · **READY - confirmed setup** · confluence **75/100**\nPrice **105.00** · <now> UTC · Real-time (Binance public market data) · market open\n\n> **Valid LONG setup:** TP1 at 108.00 gives 3.78R (minimum 2R).\n\n### Top-down read\n1. ✅ **HTF bias** (1W) — passed\n   - 1W swing structure is bullish: last BOS through 100.00 on 2026-01-05 05:00 UTC.\n   - HTF POIs: no unmitigated bullish 1W POI on the entry side.\n   - Draw on liquidity: PWH at 130.00 (buy-side).\n2. ✅ **Daily confirmation and target POI** (1D) — passed\n   - Daily structure agrees: BOS bullish through 100.00 on 2026-01-05 05:00 UTC.\n   - Daily dealing range 90.00-130.00, EQ 110.00; price is in discount (38%).\n   - Target POI: 1D bullish OB 95.00-100.00 (fresh) (no HTF POI overlap).\n   - Daily draw on liquidity: PDH at 120.00.\n3. ✅ **4H refinement and inducement** (4H) — passed\n   - Refined POI: 4H bullish OB 96.00-99.00 (fresh) inside the daily POI.\n   - 4H swing structure is bullish, aligned with the bias.\n   - 4H internal structure is neutral.\n   - No inducement pivot in front of the POI yet.\n4. ✅ **POI tap and LTF confirmation** (15m) — passed\n   - Price tapped the POI on 15m at 2026-01-05 01:15 UTC.\n   - Liquidity sweep at the POI: swing low 98.00 on 2026-01-05 01:30 UTC.\n   - Confirmation: bullish CHoCH (internal) through 102 on 2026-01-05 02:15.\n5. ✅ **Entry refinement** (15m) — passed\n   - Entry zone: 15m bullish OB 97.50-99.50 (fresh), created by the confirming leg.\n   - Invalidation (extreme of the leg that made the CHoCH, 2026-01-05 01:30 UTC): 97.50.\n   - Targets: internal swing high 108.00; external PDH 120.00; external PWH 130.00.\n   - Entry zone not retested yet since confirmation.\n\n### Timeframe alignment\n| TF | Swing | Internal | Last break | Price in |\n|---|---|---|---|---|\n| 1W | bullish ✓ | neutral | BOS bullish | - |\n| 1D | bullish ✓ | neutral | BOS bullish | discount |\n| 4H | bullish ✓ | neutral | BOS bullish | - |\n| 15m | bearish | bullish | - | - |\n\n### Trade plan\n**LONG** · valid · limit entry · TP1 at 108.00 gives 3.78R (minimum 2R).\n\n| | Price | R:R | Basis |\n|---|---|---|---|\n| Entry (limit) | 99.50 | | 15m bullish OB 97.50–99.50 |\n| Stop loss | 97.25 | −1.00R | beyond invalidation 97.50 + ATR buffer |\n| TP1 ★ | 108.00 | 3.78R | swing high (internal) |\n| TP3 | 120.00 | 9.11R | PDH (external DOL) |\n\n**Position size:** 44.4444 BTC — risking 100.00 USD (1% of 10,000).\n- Price has already covered 65% of the way from entry to TP1; the limit entry needs a retrace to 99.50.\n\n### If the setup fails (opposite scenario)\nIf a 15m candle closes below 97.50: **SHORT** at 97.50, stop 99.75, target - (-) — -R (information only). No opposing zone nearby; the failed entry zone is expected to flip (breaker).\n\n### Risks & caveats\n- Data: Real-time (Binance public market data).\n- Limit entry: no position until price retraces to the entry; a pending signal expires after 48 h, or if TP1 trades first.\n- This is a rules-based reading of Smart Money Concepts (see references/smc-methodology.md); it will not match every trader's markup.\n\n---\n*Educational analysis only — not financial advice. Trading involves substantial risk of loss.*"
+}

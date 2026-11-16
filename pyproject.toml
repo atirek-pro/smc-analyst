@@ -1,0 +1,32 @@
+# Tooling configuration for development and CI. The skill itself ships no Python package:
+# its runtime lives in skills/smc-analyst/ and is installed by scripts/setup.py.
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["skills/smc-analyst/scripts", "tests"]
+extend-exclude = ["smc-skill-env", ".venv", "skills/smc-analyst/.venv"]
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle errors/warnings, import order, bugbear, pyupgrade
+select = ["F", "E", "W", "I", "B", "UP"]
+ignore = [
+  "E731",   # small lambdas as local helpers are intentional in renderers
+  "B008",   # FastAPI's Query(...) defaults
+  "B905",   # zip(strict=) not needed: inputs are equal-length pandas columns
+]
+
+[tool.ruff.lint.per-file-ignores]
+"skills/smc-analyst/scripts/serve.py" = ["E402"]    # sys.path setup must precede imports
+"skills/smc-analyst/scripts/analyze.py" = ["E402"]
+# setup.py must run on old Pythons long enough to print "Python 3.12+ required":
+# keep it free of 3.11+-only syntax/imports such as datetime.UTC.
+"skills/smc-analyst/scripts/setup.py" = ["UP017"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["smc", "serve", "analyze"]
+known-local-folder = ["smc_builders", "test_mtf", "test_signal", "test_tracker", "test_analyze"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

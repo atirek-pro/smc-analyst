@@ -19,10 +19,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
@@ -115,7 +115,7 @@ def run_analysis(symbol: str, asset_class: str | None = None, account: float | N
         dash += ["--risk-pct", f"{risk_pct:g}"]
     result = {
         "status": "ok", "mode": "analysis", "version": __version__,
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "symbol": inst.symbol, "instrument": inst.to_dict(), "market": data.market_status(inst),
         "timeframes": [tf for tf in TF_ORDER if tf in analyses],
         "summary": summarize(cascade, plan_d, inst.symbol),
@@ -242,7 +242,8 @@ def render_report(r: dict) -> str:
         L.append("\n| | Price | R:R | Basis |")
         L.append("|---|---|---|---|")
         L.append(f"| Entry ({plan.get('entry_type')}) | {p(plan['entry'])} | | {_zone(plan.get('entry_zone'), dec)} |")
-        L.append(f"| Stop loss | {p(plan['stop_loss'])} | −1.00R | beyond invalidation {p(plan.get('invalidation_level'))}"
+        inval = p(plan.get("invalidation_level"))
+        L.append(f"| Stop loss | {p(plan['stop_loss'])} | −1.00R | beyond invalidation {inval}"
                  f" + ATR buffer |")
         for t in plan.get("targets", []):
             star = " ★" if t["name"] == plan.get("primary_target") else ""
@@ -262,14 +263,16 @@ def render_report(r: dict) -> str:
         L.append("\n### If the setup fails (opposite scenario)")
         L.append(f"If {o['trigger_rule']}: **{o['side'].upper()}** at {p(o['entry'])}, stop {p(o['stop_loss'])}, "
                  f"target {p(o['target'])} ({o['target_source'] or '-'}) — "
-                 f"{o['rr'] if o['rr'] is not None else '-'}R{'' if o['valid'] else ' (information only)'}. {o['note']}")
+                 f"{o['rr'] if o['rr'] is not None else '-'}R"
+                 f"{'' if o['valid'] else ' (information only)'}. {o['note']}")
 
     # 6. hedge
     h = plan.get("hedge")
     if h:
         L.append("\n### Hedge")
         if h["status"] == "suggested":
-            size = f" ≈ {h['hedge_units']:,g} units ({h['hedge_notional']:,.0f} notional)" if h.get("hedge_units") else ""
+            size = (f" ≈ {h['hedge_units']:,g} units ({h['hedge_notional']:,.0f} notional)"
+                    if h.get("hedge_units") else "")
             L.append(f"**{h['direction'].upper()} {h['instrument']}** at {h['ratio']}× the position notional{size}. "
                      f"{h['reason']}")
         else:

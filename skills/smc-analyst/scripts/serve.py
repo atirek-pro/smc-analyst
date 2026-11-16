@@ -43,10 +43,11 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
+from collections.abc import Callable
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
@@ -58,7 +59,7 @@ from fastapi.responses import FileResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from smc import __version__, data, feeds  # noqa: E402
-from smc.common import closed_bars, jsonable  # noqa: E402
+from smc.common import closed_bars  # noqa: E402
 from smc.config import SKILL_DIR, get_config  # noqa: E402
 from smc.liquidity import period_levels  # noqa: E402
 from smc.mtf import TF_ORDER, TimeframeAnalysis, analyze_timeframe, run_cascade  # noqa: E402
@@ -130,7 +131,8 @@ def overlays_payload(a: TimeframeAnalysis, analyses: dict[str, TimeframeAnalysis
             if h is None:
                 continue
             near = [z for z in h.zones.display() if z.bottom <= hi + pad and z.top >= lo - pad]
-            near.sort(key=lambda z: 0.0 if z.bottom <= price <= z.top else min(abs(price - z.top), abs(price - z.bottom)))
+            near.sort(key=lambda z, px=price: 0.0 if z.bottom <= px <= z.top
+                      else min(abs(px - z.top), abs(px - z.bottom)))
             htf += [zone_payload(z, htf_tf) for z in near[:HTF_PER_TF]]
 
     ind = getattr(cascade, "inducement", None)
@@ -231,7 +233,7 @@ class DashboardState:
         self.extra = self._period_levels()
         self.analyses = {tf: analyze_timeframe(df, tf, self.cfg, self.extra) for tf, df in frames.items()}
         self.rebuild_sync(with_hedge=True)
-        self.loaded_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        self.loaded_at = datetime.now(UTC).isoformat(timespec="seconds")
 
     def rebuild_sync(self, with_hedge: bool = False) -> None:
         self.cascade = run_cascade(self.analyses, self.inst, self.cfg)
@@ -497,7 +499,8 @@ def create_app(state: DashboardState) -> FastAPI:
         a = state.analyses.get(tf)
         if a is None:
             raise HTTPException(404, detail=f"no analysis for {tf}")
-        return {"version": state.version, "symbol": state.symbol, "overlays": overlays_payload(a, state.analyses, state.cascade),
+        return {"version": state.version, "symbol": state.symbol,
+                "overlays": overlays_payload(a, state.analyses, state.cascade),
                 "cascade": state.cascade.to_dict() if state.cascade else None,
                 "plan": state.plan.to_dict() if state.plan else None,
                 "market": data.market_status(state.inst)}
@@ -706,7 +709,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     live = running_server()
     if args.status:
-        out({"status": "running", **{k: live[k] for k in ("url", "pid", "symbol")}} if live else {"status": "not_running"},
+        status = {"status": "running", **{k: live[k] for k in ("url", "pid", "symbol")}} if live \
+            else {"status": "not_running"}
+        out(status,
             f"Dashboard running at {live['url']} for {live['symbol']} (pid {live['pid']})." if live
             else "No dashboard is running.")
         return 0
@@ -751,7 +756,7 @@ def main(argv: list[str] | None = None) -> int:
     server = uvicorn.Server(uvicorn.Config(app, host=host, port=port, log_level="warning"))
     app.state.server = server
     PID_FILE.write_text(json.dumps({"pid": os.getpid(), "url": url, "host": host, "port": port, "symbol": wanted,
-                                    "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}),
+                                    "started": datetime.now(UTC).isoformat(timespec="seconds")}),
                         encoding="utf-8")
     out({"status": "started", "url": url, "pid": os.getpid(), "symbol": wanted},
         f"SMC dashboard for {wanted} running at {url} (pid {os.getpid()}). Stop with: python serve.py --stop")

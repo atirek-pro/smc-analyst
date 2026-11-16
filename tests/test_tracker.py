@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-import pandas as pd
 import pytest
-from smc_builders import T0, candles
 
 from smc import tracker as tr
 from smc.signal import Target, TradePlan
 from smc.zones import Zone
+
+from smc_builders import T0, candles
 
 NOW_LATE = (T0 + timedelta(days=30)).to_pydatetime()
 

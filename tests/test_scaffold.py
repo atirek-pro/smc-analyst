@@ -133,3 +133,13 @@ def test_setup_check_does_not_create_anything(tmp_path):
     target = tmp_path / "venv"
     _run_setup("--check", env_venv=target)
     assert not target.exists()
+
+
+def test_setup_py_stays_runnable_on_old_pythons():
+    """setup.py must reach its own "Python 3.12+ required" message on old interpreters,
+    so it may not use newer syntax or 3.11+-only imports (e.g. datetime.UTC)."""
+    import ast
+    src = SETUP.read_text(encoding="utf-8")
+    ast.parse(src, feature_version=(3, 8))  # SyntaxError if newer grammar sneaks in
+    for banned in ("from datetime import UTC", "datetime.UTC", "import tomllib", "ExceptionGroup"):
+        assert banned not in src, f"setup.py uses {banned}, which breaks on old Pythons"

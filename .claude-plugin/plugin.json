@@ -1,10 +1,12 @@
 {
   "name": "smc-analyst",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Top-down Smart Money Concepts (SMC/ICT) analysis for stocks, crypto and forex with a live candlestick dashboard, drawn BOS/CHoCH/OB/FVG/liquidity, and a tracked trade plan (entry, SL, TPs, opposite scenario, correlated hedge).",
   "author": {
     "name": "atirek-pro"
   },
+  "homepage": "https://github.com/atirek-pro/smc-analyst",
+  "repository": "https://github.com/atirek-pro/smc-analyst",
   "license": "MIT",
   "keywords": [
     "smart-money-concepts",

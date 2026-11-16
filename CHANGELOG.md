@@ -5,6 +5,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-16
+
+First stable release: top-down SMC analysis, trade plan, live dashboard and signal tracking, driven by Claude
+through `SKILL.md`. Highlights are in `docs/release-notes/v1.0.0.md`.
+
+### Added (Phase 7: quality and release polish)
+- **CI** (`.github/workflows/ci.yml`):
+  - lint: ruff, plus manifest / SKILL.md frontmatter / JS syntax checks
+  - offline test matrix: Linux, Windows and macOS on Python 3.12, plus Linux on 3.13, with deprecations as errors
+  - a `setup.py` smoke test
+- `smc/schema.py`: dependency-free JSON contract and validator for `analyze.py` (analysis, resolve and error shapes).
+- **Golden files** (`tests/golden/`): the full JSON and markdown report for deterministic READY and WAITING markets, regenerated with `SMC_UPDATE_GOLDEN=1`.
+- `tools/make_media.py`: regenerates the README screenshots and hero GIF from the live dashboard (headless Edge/Chrome plus Pillow).
+- `docs/images/`: hero GIF and 9 screenshots (structure, order blocks, FVG, liquidity, premium/discount, HTF projection, position tool, full dashboard, light theme).
+- README rewritten:
+  - hero GIF, CI badge, example prompts, both install routes
+  - screenshot grid, report excerpt, symbols and data limits, configuration table
+  - CLI, layout, development, roadmap, disclaimer, credits
+- `RELEASING.md` release checklist; `docs/release-notes/v1.0.0.md`.
+- Dashboard: `?layers=` deep link; the price scale always includes the plan's entry, stop and TP1 (series-primitive `autoscaleInfo`).
+- `pyproject.toml` (ruff + pytest config), `.gitattributes` (LF line endings for cross-OS golden files), dev pins `ruff==0.17.3` and `pillow==13.0.0`.
+
+### Changed
+- Codebase linted with ruff (imports sorted, `datetime.UTC`, PEP 695 generic `with_retries`, explicit loop-variable binding in the tracker, `raise … from None`).
+- Plugin manifest: `homepage` and `repository`; version 1.0.0.
+
+## [0.6.0] - 2026-11-16
+
 ### Added (Phase 6: Claude workflow)
 - `SKILL.md`: the complete workflow Claude follows (137 lines):
   1. identify the instrument, asking when ambiguous
@@ -38,7 +66,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Changed
 - Version 0.6.0.
 
-### Phase 5
+## [0.5.0] - 2026-11-15
 
 ### Added (Phase 5: live dashboard)
 - `scripts/serve.py`: FastAPI server for one symbol with these endpoints:
@@ -57,7 +85,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Dev dependency `httpx2==2.16.0` for FastAPI's TestClient.
 - Version 0.5.0.
 
-### Phase 4
+## [0.4.0] - 2026-11-15
 
 ### Added (Phase 4: trade plan and tracking)
 - `smc/signal.py`: priced trade plans built from READY cascades. Includes entry (zone edge or 50%), SL (distal or invalidation, plus ATR buffer), TP1 (nearest liquidity), TP2 (next swing), TP3 (external DOL / opposing HTF POI), R:R per target, a validity gate (`min_rr`), limit-vs-market entry, and a note when most of the move to TP1 is done.
@@ -73,7 +101,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - New config keys: `risk.account_currency`, `hedge.history_days`, `tracker.timeframe`, `tracker.journal_path`, `tracker.max_catchup_bars`.
 - Version 0.4.0.
 
-### Phase 3
+## [0.3.0] - 2026-11-15
 
 ### Added (Phase 3: SMC engine)
 - `smc/swings.py`: fractal swing and internal pivots with confirmation index (no look-ahead), HH/HL/LH/LL labels.
@@ -90,7 +118,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - New config keys: `structure.confirmation_timeframe`, `structure.entry_timeframe`, `zones.ob_search_back_bars`, `zones.base_max_body_atr`, `zones.base_max_candles`, `pd_array.equilibrium_band`.
 - Plugin version 0.3.0.
 
-### Phase 2
+## [0.2.0] - 2026-11-15
 
 ### Added (Phase 2: market-data layer)
 - `smc/config.py`: deep-merges `config.default.json` with an optional user `config.json`.
@@ -103,7 +131,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `requirements-dev.txt` now includes the runtime pins so tests can import the engine.
 - Plugin version 0.2.0.
 
-### Phase 1
+## [0.1.0] - 2026-11-15
 
 ### Added
 - Phase 1 scaffold: repository layout, MIT license, `.gitignore`.

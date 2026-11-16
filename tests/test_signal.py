@@ -5,18 +5,17 @@ from __future__ import annotations
 import copy
 import json
 import re
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-from smc_builders import T0
-from test_mtf import BTC, CFG, bullish_htf, brk, lvl, ltf_frame, ta, zone
 
 from smc import signal as sig
 from smc.config import SKILL_DIR
 from smc.data import resolve_symbol
 from smc.mtf import run_cascade
+
+from test_mtf import BTC, CFG, brk, bullish_htf, ltf_frame, lvl, ta, zone
 
 
 def ready_case(extra_1d_levels=(), h1_zones=()):
@@ -130,7 +129,9 @@ def test_size_forex_usd_base_converts_with_price():
 
 def test_size_cross_uses_fx_rate_or_notes_missing():
     gj = resolve_symbol("GBPJPY")
-    pos = sig.position_size(gj, 200.0, 199.0, 10_000, 1.0, fx_rate=lambda b, q: 150.0 if (b, q) == ("USD", "JPY") else None)
+    def usd_jpy(base, quote):
+        return 150.0 if (base, quote) == ("USD", "JPY") else None
+    pos = sig.position_size(gj, 200.0, 199.0, 10_000, 1.0, fx_rate=usd_jpy)
     assert pos.units == pytest.approx(15_000)          # 100 USD / (1 JPY / 150)
     pos2 = sig.position_size(gj, 200.0, 199.0, 10_000, 1.0, fx_rate=no_fx)
     assert any("No JPY->USD rate" in n for n in pos2.notes)
