@@ -527,6 +527,10 @@
         const meta = await api('/api/meta');
         S.meta = meta;
         $('symbol').textContent = meta.symbol;
+        // Version the page was built for vs the server's: a mismatch means this tab runs old code.
+        const pageVersion = document.documentElement.dataset.version || '';
+        if (pageVersion && meta.version && pageVersion !== meta.version) { location.reload(); return meta; }
+        $('app-version').textContent = `smc-analyst v${meta.version}`;
         $('instrument').textContent = `${meta.instrument.asset_class} · ${meta.instrument.provider} · ${meta.instrument.realtime ? 'real-time' : 'polled'}`;
         if (meta.status === 'ready') return meta;
         if (meta.status === 'error') { showLoading('Analysis failed: ' + meta.error); }
