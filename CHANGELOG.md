@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-17
+
+### Fixed
+- **Moving left/right no longer zooms the chart vertically.** Lightweight Charts' price auto-scale re-fitted the
+  axis to whichever candles were on screen, so a sideways scroll or drag changed the price span by up to ~85%,
+  which looked like zooming in and out. Any time navigation (scroll, swipe, drag, Ctrl/pinch zoom, time-axis
+  zoom) now locks the price axis at its current range first; live ticks slide the locked axis (never rescale it)
+  to keep the current price visible; `auto` / `A` / `F` / timeframe switch / price-axis double-click re-fit.
+- New `tools/check_navigation.py`: drives the real dashboard in a headless browser and checks every
+  navigation path, including that the price scale is unchanged through sideways movement.
+
 ## [1.0.1] - 2026-11-17
 
 ### Changed

@@ -13,8 +13,15 @@
  *   double-click an axis                    -> reset that axis (auto-scale / default spacing)
  *
  * Each wheel event moves along ONE axis only (the dominant one), so a slightly diagonal
- * swipe never pans and zooms at the same time. Panning or zooming the price axis turns
- * auto-scale off; onAutoScaleChange lets the UI show an "auto" toggle like TradingView's.
+ * swipe never pans and zooms at the same time.
+ *
+ * Horizontal navigation never changes the vertical scale. Lightweight Charts' price auto-scale
+ * re-fits the axis to whatever candles are on screen, so panning sideways visibly zoomed the
+ * chart in and out (measured: the price span swung ~85% over a few hundred pixels). Any time
+ * navigation therefore first locks the price axis at its current range (freezePrice). Auto-scale
+ * returns only when the user asks: the "auto" corner toggle, key A, F (fit), a timeframe switch or
+ * a double-click on the price axis. While locked, live ticks shift (never rescale) the price axis
+ * just enough to keep the latest price visible (keepInView). onAutoScaleChange drives the toggle.
  */
 (function (global) {
   'use strict';
@@ -22,6 +29,9 @@
   const ZOOM_SPEED = 0.0025;     // per wheel pixel; 100px (one mouse notch) ~ 28%
   const MIN_BARS = 8;            // most zoomed-in time view
   const MIN_VISIBLE = 5;         // bars that must stay on screen when panning away
+  const DRAG_SLOP = 3;           // px of pointer travel before a press counts as a drag
+  const VERT_SLOP = 6;           // px of vertical travel before a pane drag also pans price
+  const VIEW_MARGIN = 0.08;      // keepInView leaves this fraction of the pane free above/below
 
   function wheelPixels(e, pageSize) {
     const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? pageSize : 1;
@@ -71,11 +81,23 @@
 
     syncAutoScale() { this.onAutoScaleChange(this.isAutoScale()); }
 
+    // Lock the price axis exactly where it is (setVisibleRange(getVisibleRange()) is lossless),
+    // so the time navigation that follows cannot re-fit, i.e. visually zoom, the price axis.
+    freezePrice() {
+      if (!this.isAutoScale()) return;
+      const ps = this.series.priceScale();
+      const r = ps.getVisibleRange();
+      if (!r) return;
+      ps.setVisibleRange({ from: r.from, to: r.to });
+      this.syncAutoScale();
+    }
+
     // ------------------------------------------------------------- time axis
     panTime(px, paneW) {
       const ts = this.chart.timeScale();
       const r = ts.getVisibleLogicalRange();
       if (!r || !paneW) return;
+      this.freezePrice();
       const span = r.to - r.from;
       let shift = px * span / paneW;
       const n = this.barCount();
@@ -93,6 +115,7 @@
       const next = Math.min(maxSpan, Math.max(MIN_BARS, span * Math.exp(delta * ZOOM_SPEED)));
       const f = next / span;
       if (f === 1) return;
+      this.freezePrice();
       const anchor = r.from + span * Math.min(1, Math.max(0, x / paneW));   // logical bar under the cursor
       ts.setVisibleLogicalRange({ from: anchor - (anchor - r.from) * f, to: anchor + (r.to - anchor) * f });
     }
@@ -146,17 +169,24 @@
     onPointerDown(e) {
       if (e.button !== 0) return;
       const g = this.regionAt(e);
-      if (g.area !== 'pane') return;
-      // LWC pans the time axis on drag; vertical drag is ours (it also turns auto-scale off).
-      // A small dead zone keeps a purely horizontal drag from switching auto-scale off.
-      this.drag = { y0: e.clientY, y: e.clientY, paneH: g.paneH, vertical: false };
-      this.el.classList.add('nav-grabbing');
+      if (g.area !== 'pane' && g.area !== 'time') return;
+      // LWC moves the time axis itself (pane drag = pan, time-axis drag = zoom). Pointer events
+      // fire before the mouse events LWC listens to, so freezing on the first real movement
+      // happens before LWC applies it. Vertical pane drag is ours.
+      this.drag = { area: g.area, x0: e.clientX, y0: e.clientY, y: e.clientY, paneH: g.paneH,
+        moved: false, vertical: false };
+      if (g.area === 'pane') this.el.classList.add('nav-grabbing');
     }
 
     onPointerMove(e) {
       if (this.drag && e.buttons & 1) {
         const d = this.drag;
-        if (!d.vertical && Math.abs(e.clientY - d.y0) < 6) return;
+        if (!d.moved && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) >= DRAG_SLOP) {
+          d.moved = true;
+          this.freezePrice();
+        }
+        if (d.area !== 'pane') return;
+        if (!d.vertical && Math.abs(e.clientY - d.y0) < VERT_SLOP) return;
         if (!d.vertical) { d.vertical = true; d.y = d.y0; }
         const dy = e.clientY - d.y;
         d.y = e.clientY;
@@ -176,6 +206,25 @@
     }
 
     // ------------------------------------------------------------- public
+    // Live tick while the price axis is locked: if the newest bar is on screen and its price has
+    // left the view, slide the axis (same scale) so the price sits VIEW_MARGIN inside the edge.
+    keepInView(price) {
+      if (this.isAutoScale() || this.drag || !Number.isFinite(price)) return;
+      const n = this.barCount();
+      const r = this.chart.timeScale().getVisibleLogicalRange();
+      if (!r || n - 1 < r.from || n - 1 > r.to) return;
+      const { paneH } = this.regions();
+      const view = this.priceRange(paneH);
+      if (!view) return;
+      const span = view.top - view.bottom, pad = span * VIEW_MARGIN;
+      let d = 0;
+      if (price > view.top - pad) d = price - (view.top - pad);
+      else if (price < view.bottom + pad) d = price - (view.bottom + pad);
+      if (!d) return;
+      const ps = this.series.priceScale(), pr = ps.getVisibleRange();
+      if (pr) ps.setVisibleRange({ from: pr.from + d, to: pr.to + d });
+    }
+
     setAutoScale(on) {
       this.series.priceScale().setAutoScale(on);
       this.syncAutoScale();

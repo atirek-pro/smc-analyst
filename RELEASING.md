@@ -14,6 +14,7 @@
    ```
    Expect setup → report → dashboard link, and the dashboard still running afterwards.
 5. **Media** (when the UI changed): `python tools/make_media.py`, then commit `docs/images/`.
+   Also run `python tools/check_navigation.py <dashboard URL>`: every check must pass.
 6. **Merge** the release PR into `main`.
 7. **Tag and release** from `main`:
    ```bash
