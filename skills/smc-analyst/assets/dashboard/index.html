@@ -38,7 +38,7 @@
     <section class="chart-wrap">
       <div id="layers" class="layers" hidden></div>
       <div id="chart" class="chart"></div>
-      <button id="btn-auto" class="auto-btn on" title="Auto-scale the price axis (A)">auto</button>
+      <button id="btn-auto" class="auto-btn" title="Fit the price axis to the candles on screen (A)">auto</button>
       <div id="loading" class="loading">
         <div class="spinner"></div>
         <div id="loading-text">Running the top-down analysis...</div>
@@ -100,12 +100,12 @@
         <tr><td><kbd>H</kbd></td><td>Show / hide HTF zones on this timeframe</td></tr>
         <tr><td><kbd>P</kbd></td><td>Show / hide the position tool</td></tr>
         <tr><td><kbd>L</kbd></td><td>Layers panel</td></tr>
-        <tr><td><kbd>F</kbd></td><td>Fit chart to recent bars (also restores auto-scale)</td></tr>
-        <tr><td><kbd>A</kbd></td><td>Toggle price auto-scale (time navigation locks the price axis; this re-fits it)</td></tr>
+        <tr><td><kbd>F</kbd></td><td>Fit chart to recent bars (time and price)</td></tr>
+        <tr><td><kbd>A</kbd></td><td>Fit the price axis to the candles on screen (same as the <b>auto</b> corner button). The price scale never changes on its own while you move in time.</td></tr>
       </table>
       <h2>Chart navigation</h2>
       <table class="grid">
-        <tr><td>Scroll / swipe</td><td>Pan: left/right moves in time (price scale stays fixed), up/down moves in price</td></tr>
+        <tr><td>Scroll / swipe</td><td>Pan: left/right moves in time (the price scale never changes), up/down moves in price</td></tr>
         <tr><td><kbd>Shift</kbd> + scroll</td><td>Pan in time with a mouse wheel</td></tr>
         <tr><td><kbd>Ctrl</kbd> + scroll / pinch</td><td>Zoom time around the cursor</td></tr>
         <tr><td>Drag on the chart</td><td>Pan in time and price</td></tr>
