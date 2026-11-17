@@ -3,7 +3,7 @@
 > Ask Claude for a **top-down Smart Money Concepts (SMC / ICT)** analysis of any stock, crypto or forex pair. You get a structured report, a priced trade plan (or an honest *"no setup — waiting for X"*), and a **live candlestick dashboard** with every concept drawn on real-time candles.
 
 [![CI](https://github.com/atirek-pro/smc-analyst/actions/workflows/ci.yml/badge.svg)](https://github.com/atirek-pro/smc-analyst/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-1.0.0-blue)
+![version](https://img.shields.io/badge/version-1.0.1-blue)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 

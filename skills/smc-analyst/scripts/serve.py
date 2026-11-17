@@ -477,6 +477,15 @@ def create_app(state: DashboardState) -> FastAPI:
     app.state.server = None
     app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR)), name="static")
 
+    @app.middleware("http")
+    async def revalidate_static(request, call_next):
+        # Make the browser re-check dashboard files (ETag -> cheap 304) so a plugin update is
+        # picked up immediately instead of running a cached, older app.js.
+        response = await call_next(request)
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.get("/")
     async def index():
         return FileResponse(DASHBOARD_DIR / "index.html", headers={"Cache-Control": "no-store"})

@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-17
+
 ### Changed
 - **Dashboard navigation now behaves like TradingView** (`assets/dashboard/navigation.js`):
   - scrolling or swiping pans the chart (left/right = time, up/down = price) and never zooms; each
@@ -13,6 +15,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
     on the price axis zooms price, with `ew-resize` / `ns-resize` cursors on the axes
   - dragging the chart pans both time and price; an `auto` toggle in the axis corner (key `A`) and `F`
     restore price auto-scale
+
+### Fixed
+- Dashboard files under `/static` are served with `Cache-Control: no-cache`, so after a plugin update the
+  browser loads the new scripts instead of a cached older version.
 
 ## [1.0.0] - 2026-11-16
 
