@@ -417,6 +417,7 @@
     if (last && c.time === last.time) S.candles[S.candles.length - 1] = { ...bar, volume: c.volume };
     else { if (last) S.prevClose = last.close; S.candles.push({ ...bar, volume: c.volume }); S.mapper.push(c.time); }
     S.series.update(bar);
+    if (S.nav) S.nav.keepInView(c.close);
     updatePrice(c.close);
     setFeed(...feedLabel());
   }
@@ -490,7 +491,7 @@
 
   function bindKeys() {
     document.addEventListener('keydown', (e) => {
-      if (e.target.matches('input, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
+      if ((e.target.matches && e.target.matches('input, textarea')) || e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key.toLowerCase();
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= S.meta.timeframes.length) setTF(S.meta.timeframes[n - 1]);

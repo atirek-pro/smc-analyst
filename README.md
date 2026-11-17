@@ -91,6 +91,11 @@ npx skills add atirek-pro/smc-analyst -a claude-code
 | Scroll or drag | price axis (`↕` cursor) | zoom price |
 | Double-click | an axis | reset it; `auto` in the axis corner restores price auto-scale |
 
+Moving or zooming in **time never changes the price scale**: the first sideways move locks the price axis where
+it is (the `auto` toggle turns grey), so the chart can't zoom vertically as different candles come into view.
+Live ticks slide the locked axis to keep the current price visible. `auto`, `A`, `F`, a timeframe switch or a
+double-click on the price axis re-fit it.
+
 Deep links: `?tf=4H&theme=light&layers=ob,fvg`.
 
 ## What a report looks like (excerpt)
@@ -171,6 +176,7 @@ skills/smc-analyst/
   assets/dashboard/        chart UI (vanilla JS + Lightweight Charts 5.2.1, vendored)
 tests/                     offline test suite incl. golden files
 tools/make_media.py        regenerates the screenshots and GIF from the live dashboard
+tools/check_navigation.py  browser check of chart pan / zoom / cursors against a running dashboard
 ```
 
 ## Development
@@ -181,6 +187,7 @@ python -m pytest                       # offline test suite (also run in CI on L
 python -m ruff check .                 # lint
 SMC_UPDATE_GOLDEN=1 python -m pytest tests/test_golden.py   # accept an intended report / JSON change
 python tools/make_media.py             # refresh README media (needs Edge or Chrome)
+python tools/check_navigation.py URL   # chart navigation check in a headless browser (needs Edge or Chrome)
 claude --plugin-dir .                  # try the skill locally
 ```
 
