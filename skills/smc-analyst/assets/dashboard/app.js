@@ -92,6 +92,21 @@
     S.bottom.setMapper(S.mapper); S.top.setMapper(S.mapper);
     S.series.attachPrimitive(S.bottom);
     S.series.attachPrimitive(S.top);
+    // TradingView-style navigation: wheel pans, Ctrl/pinch or the axes zoom (navigation.js).
+    S.nav = new SMCNavigation.ChartNavigation(S.chart, S.series, $('chart'), {
+      barCount: () => S.candles.length,
+      onAutoScaleChange: (on) => $('btn-auto').classList.toggle('on', on),
+    });
+    $('btn-auto').onclick = () => S.nav.setAutoScale(!S.nav.isAutoScale());
+    // Sit the "auto" toggle in the corner between the two axes, like TradingView.
+    const placeAuto = () => {
+      const b = $('btn-auto');
+      b.style.width = S.chart.priceScale('right').width() + 'px';
+      b.style.height = S.chart.timeScale().height() + 'px';
+    };
+    S.chart.timeScale().subscribeSizeChange(placeAuto);
+    placeAuto();
+    window.SMCDashboard = S;   // read-only handle for debugging and automated UI checks
     applyTheme(S.theme);
   }
 
@@ -345,6 +360,7 @@
     const n = S.candles.length;
     if (!n) return;
     S.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - 160), to: n + 18 });
+    if (S.nav) S.nav.setAutoScale(true);
   }
 
   function updatePrice(p) {
@@ -482,6 +498,7 @@
       else if (k === 'p') toggleLayer('position');
       else if (k === 'l') $('layers').hidden = !$('layers').hidden;
       else if (k === 'f') fitRecent();
+      else if (k === 'a') S.nav.setAutoScale(!S.nav.isAutoScale());
       else if (k === 'r') refreshAll();
       else if (k === 't') applyTheme(S.theme === 'dark' ? 'light' : 'dark');
       else if (e.key === '?') $('help').hidden = !$('help').hidden;
