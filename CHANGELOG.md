@@ -5,6 +5,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-17
+
+### Fixed
+- **Updates never reached browsers that had opened a 1.0.0 dashboard.** 1.0.0 served the dashboard scripts
+  without `Cache-Control`, so browsers kept the old `app.js` by heuristic freshness (hours, for files that had
+  not changed in a while) and reused it without asking the server. Every later page (1.0.1-1.0.3) then loaded
+  the new `navigation.js` but the cached 1.0.0 `app.js`, which never starts it: the chart behaved exactly like
+  1.0.0 and the price axis kept re-fitting while dragging. Reproduced with one browser profile across 1.0.0 ->
+  1.0.3 (`app.js [from cache]`, navigation inactive).
+  - The never-cached `index.html` now references every `/static/` script and stylesheet with a content
+    fingerprint (`app.js?v=<sha256 prefix>`), so a changed file always gets a URL the browser has never seen.
+  - The page carries the version it was built for (`<html data-version>`); if the server reports another
+    version (dashboard restarted after an update while the tab stayed open) the page reloads itself.
+  - The footer shows `smc-analyst vX.Y.Z`, so the running version is visible at a glance.
+
 ## [1.0.3] - 2026-11-17
 
 ### Fixed

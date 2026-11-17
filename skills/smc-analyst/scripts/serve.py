@@ -32,9 +32,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import hashlib
 import json
 import logging
 import os
+import re
 import signal as _signal
 import socket
 import sys
@@ -55,7 +57,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import pandas as pd  # noqa: E402
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect  # noqa: E402
-from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.responses import HTMLResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from smc import __version__, data, feeds  # noqa: E402
@@ -463,6 +465,36 @@ class DashboardState:
 # FastAPI app
 # =============================================================================
 
+
+_STATIC_REF = re.compile(r'((?:src|href)=")/static/([^"?#]+)(")')
+
+
+def asset_fingerprint(rel: str) -> str:
+    """Short content hash of a dashboard file (empty if it does not exist)."""
+    path = (DASHBOARD_DIR / rel).resolve()
+    if DASHBOARD_DIR.resolve() not in path.parents or not path.is_file():
+        return ""
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+
+
+def render_index() -> str:
+    """index.html with every /static/ script and stylesheet URL fingerprinted (?v=<content hash>).
+
+    The page itself is never cached (no-store), so after an update the browser always requests
+    new URLs and cannot keep running a cached older app.js. 1.0.0 served static files without
+    Cache-Control, so browsers could reuse those copies for hours by heuristic freshness: the new
+    page then ran old scripts (navigation never initialised) even though the plugin was updated.
+    """
+    html = (DASHBOARD_DIR / "index.html").read_text(encoding="utf-8")
+
+    def stamp(m: re.Match) -> str:
+        fp = asset_fingerprint(m.group(2))
+        return f"{m.group(1)}/static/{m.group(2)}{'?v=' + fp if fp else ''}{m.group(3)}"
+
+    html = _STATIC_REF.sub(stamp, html)
+    return html.replace("<html", f'<html data-version="{__version__}"', 1)
+
+
 def create_app(state: DashboardState) -> FastAPI:
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -488,7 +520,7 @@ def create_app(state: DashboardState) -> FastAPI:
 
     @app.get("/")
     async def index():
-        return FileResponse(DASHBOARD_DIR / "index.html", headers={"Cache-Control": "no-store"})
+        return HTMLResponse(render_index(), headers={"Cache-Control": "no-store"})
 
     @app.get("/api/meta")
     async def meta():

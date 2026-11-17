@@ -156,8 +156,31 @@ def test_api_endpoints(tmp_path):
         assert client.get("/static/app.js").status_code == 200
         nav = client.get("/static/navigation.js")
         assert nav.status_code == 200 and nav.headers["cache-control"] == "no-cache"
-        assert "/static/navigation.js" in client.get("/").text
+        assert "/static/navigation.js?v=" in client.get("/").text
         assert client.post("/api/shutdown").json() == {"status": "stopping"}
+
+
+def test_index_fingerprints_every_static_asset_and_stamps_the_version(tmp_path):
+    # A browser may hold heuristically-cached copies of old dashboard scripts (1.0.0 sent no
+    # Cache-Control). The never-cached index must point at content-hashed URLs so an update
+    # can never run an old app.js / navigation.js.
+    import hashlib
+    import re
+
+    html = serve.render_index()
+    refs = re.findall(r'(?:src|href)="/static/([^"]+)"', html)
+    assert {"app.js", "navigation.js", "overlays.js", "styles.css"} <= {r.split("?")[0] for r in refs}
+    for ref in refs:
+        path, _, query = ref.partition("?")
+        digest = hashlib.sha256((serve.DASHBOARD_DIR / path).read_bytes()).hexdigest()[:12]
+        assert query == f"v={digest}", f"{path} is not fingerprinted with its content hash"
+    assert f'data-version="{serve.__version__}"' in html
+    assert serve.asset_fingerprint("../scripts/serve.py") == ""        # never hashes outside the dashboard
+    st = make_state(tmp_path, live=False)
+    with TestClient(serve.create_app(st)) as client:
+        r = client.get("/")
+        assert r.headers["cache-control"] == "no-store" and r.text == html
+        assert client.get("/static/app.js", params={"v": "anything"}).status_code == 200
 
 
 def test_api_returns_503_while_loading(tmp_path):
