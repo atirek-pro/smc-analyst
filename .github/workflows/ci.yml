@@ -44,6 +44,7 @@ jobs:
         run: |
           node --check skills/smc-analyst/assets/dashboard/app.js
           node --check skills/smc-analyst/assets/dashboard/overlays.js
+          node --check skills/smc-analyst/assets/dashboard/navigation.js
 
   test:
     name: Tests (${{ matrix.os }}, py${{ matrix.python }})

@@ -67,6 +67,17 @@ button { font: inherit; color: inherit; }
 .layout { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; min-height: 0; }
 .chart-wrap { position: relative; min-height: 480px; border-right: 1px solid var(--border); }
 .chart { position: absolute; inset: 0; }
+/* Navigation cursors (navigation.js sets data-nav-area): pan in the pane, resize on the axes. */
+.chart[data-nav-area="time"] * { cursor: ew-resize !important; }
+.chart[data-nav-area="price"] * { cursor: ns-resize !important; }
+.chart.nav-grabbing[data-nav-area="pane"] * { cursor: grabbing !important; }
+.auto-btn {
+  position: absolute; right: 0; bottom: 0; z-index: 4; font-size: 11px; font-weight: 600; padding: 0;
+  cursor: pointer; border: 0; border-left: 1px solid var(--border); border-top: 1px solid var(--border);
+  background: var(--bg); color: var(--muted);
+}
+.auto-btn:hover { color: var(--text); }
+.auto-btn.on { color: var(--accent); }
 .legend {
   position: absolute; left: 12px; top: 10px; z-index: 3; pointer-events: none;
   display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted);

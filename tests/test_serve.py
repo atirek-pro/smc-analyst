@@ -154,6 +154,8 @@ def test_api_endpoints(tmp_path):
         assert client.get("/api/journal").json()["stats"]["total"] == 0
         assert client.get("/").status_code == 200 and "lightweight-charts" in client.get("/").text
         assert client.get("/static/app.js").status_code == 200
+        assert client.get("/static/navigation.js").status_code == 200
+        assert "/static/navigation.js" in client.get("/").text
         assert client.post("/api/shutdown").json() == {"status": "stopping"}
 
 

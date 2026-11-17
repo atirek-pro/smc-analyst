@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- **Dashboard navigation now behaves like TradingView** (`assets/dashboard/navigation.js`):
+  - scrolling or swiping pans the chart (left/right = time, up/down = price) and never zooms; each
+    wheel event moves along its dominant axis only, so a diagonal trackpad swipe no longer pans and zooms at once
+  - `Ctrl` + scroll or pinch zooms time around the cursor; scroll or drag on the time axis zooms time,
+    on the price axis zooms price, with `ew-resize` / `ns-resize` cursors on the axes
+  - dragging the chart pans both time and price; an `auto` toggle in the axis corner (key `A`) and `F`
+    restore price auto-scale
+
 ## [1.0.0] - 2026-11-16
 
 First stable release: top-down SMC analysis, trade plan, live dashboard and signal tracking, driven by Claude

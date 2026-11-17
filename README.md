@@ -78,7 +78,18 @@ npx skills add atirek-pro/smc-analyst -a claude-code
 ![Full dashboard](docs/images/dashboard.png)
 
 ### Dashboard keys
-`1`–`7` timeframes (1W → 1m) · `H` HTF zones on/off · `P` position tool · `L` layers · `F` fit · `R` refresh · `T` theme · `?` help.
+`1`–`7` timeframes (1W → 1m) · `H` HTF zones on/off · `P` position tool · `L` layers · `F` fit · `A` price auto-scale · `R` refresh · `T` theme · `?` help.
+
+### Chart navigation (TradingView-style)
+| Action | Where | Effect |
+|---|---|---|
+| Scroll / trackpad swipe | chart | pan: left/right in time, up/down in price (one axis per gesture, never zooms) |
+| `Shift` + scroll | chart | pan in time with a vertical mouse wheel |
+| `Ctrl` + scroll, or pinch | chart | zoom time around the cursor |
+| Drag | chart | pan in time and price (the grabbed price stays under the cursor) |
+| Scroll or drag | time axis (`↔` cursor) | zoom time |
+| Scroll or drag | price axis (`↕` cursor) | zoom price |
+| Double-click | an axis | reset it; `auto` in the axis corner restores price auto-scale |
 
 Deep links: `?tf=4H&theme=light&layers=ob,fvg`.
 
