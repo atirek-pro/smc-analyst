@@ -81,6 +81,9 @@ class Page:
         return (await self.cmd("Runtime.evaluate", expression=expr, returnByValue=True))["result"].get("value")
 
     async def wheel(self, x, y, dx=0.0, dy=0.0, mods=0, pause=0.08):
+        # Hover first, as a real mouse does: headless Chromium can stall a wheel event that
+        # arrives straight after a drag release with no movement in between.
+        await self.mouse("mouseMoved", x, y)
         await self.cmd("Input.dispatchMouseEvent", type="mouseWheel", x=x, y=y, deltaX=dx, deltaY=dy, modifiers=mods)
         await asyncio.sleep(pause)
 
@@ -98,17 +101,211 @@ class Page:
         await asyncio.sleep(0.4)
 
 
-async def run(url: str) -> int:
-    profile = tempfile.mkdtemp()
+class Ctx:
+    """One fresh dashboard page plus the geometry and helpers every section uses."""
+
+    def __init__(self, page: Page, s0: dict, check):
+        self.p, self.check, self.s0 = page, check, s0
+        self.L, self.T = s0["left"], s0["topPx"]
+        self.paneW, self.paneH = s0["w"] - s0["axisW"], s0["h"] - s0["axisH"]
+        self.px, self.py = self.L + self.paneW * 0.55, self.T + self.paneH * 0.5
+        self.time_x, self.time_y = self.L + self.paneW * 0.5, self.T + self.paneH + s0["axisH"] / 2
+        self.price_x, self.price_y = self.L + self.paneW + s0["axisW"] / 2, self.T + self.paneH * 0.4
+
+    async def st(self):
+        return await self.p.ev(STATE)
+
+    async def fit(self):
+        # One-shot price fit (load / F / A / "auto"); it locks again after the next paint.
+        await self.p.ev("SMCDashboard.nav.fitPrice()")
+        await asyncio.sleep(0.4)
+
+    async def drag_track(self, x0, y0, path):
+        """Press at (x0, y0), move through path [(x, y)], release; price span after every step."""
+        await self.p.mouse("mouseMoved", x0, y0)
+        await self.p.mouse("mousePressed", x0, y0, buttons=1)
+        spans = []
+        for x, y in path:
+            await self.p.mouse("mouseMoved", x, y, buttons=1)
+            spans.append(pspan(await self.st()))
+        await self.p.mouse("mouseReleased", *path[-1])
+        await asyncio.sleep(0.5)
+        return spans
+
+
+def bars(s):
+    return s["to"] - s["from"]
+
+
+def pspan(s):
+    return s["top"] - s["bot"]
+
+
+def same(a, b, tol=1e-6):
+    return abs(a - b) <= tol * max(1.0, abs(a))
+
+
+# Each section runs in its own fresh browser page: long single sessions of synthetic input can
+# stall inside headless Chromium (the dashboard page itself stays responsive), so isolating the
+# sections keeps the check reliable.
+
+async def sec_load_and_hover(c: Ctx):
+    c.check("load: price axis fitted and locked (no auto-scale left on)", not c.s0["auto"])
+    a = await c.st()
+    for i in range(50):
+        await c.p.mouse("mouseMoved", c.L + (c.s0["w"] - 4) * i / 49,
+                        c.T + 10 + (c.s0["h"] - 14) * ((i * 7) % 50) / 49)
+    await asyncio.sleep(0.4)
+    b = await c.st()
+    c.check("hover: no change to time or price",
+            same(a["from"], b["from"]) and same(a["to"], b["to"]) and same(pspan(a), pspan(b)))
+
+
+async def sec_swipe(c: Ctx):
+    a = await c.st()
+    spans = []
+    for _ in range(12):
+        await c.p.wheel(c.px, c.py, dx=-50, dy=6)          # swipe with vertical noise
+        spans.append(pspan(await c.st()))
+    b = await c.st()
+    c.check("swipe left/right: moves in time", b["from"] < a["from"] - 1,
+            f"from {a['from']:.1f} -> {b['from']:.1f}")
+    c.check("swipe left/right: bar count unchanged (no time zoom)", same(bars(a), bars(b), 1e-4),
+            f"{bars(a):.2f} -> {bars(b):.2f}")
+    c.check("swipe left/right: price scale never changes (no vertical zoom)",
+            all(same(x, pspan(a)) for x in spans), f"{pspan(a):.6f} -> {min(spans):.6f}..{max(spans):.6f}")
+    c.check("swipe left/right: price axis stays locked", not b["auto"])
+    a = await c.st()
+    await c.p.wheel(c.px, c.py, dy=-200, mods=8)
+    b = await c.st()
+    c.check("shift+wheel: moves in time, price scale unchanged",
+            b["from"] < a["from"] and same(bars(a), bars(b), 1e-4) and same(pspan(a), pspan(b)))
+
+
+async def sec_drag(c: Ctx):
+    a = await c.st()
+    spans = await c.drag_track(c.px, c.py, [(c.px + 15 * i, c.py + (i % 3) - 1) for i in range(1, 31)])
+    b = await c.st()
+    c.check("drag sideways: moves in time", b["from"] < a["from"] - 1,
+            f"from {a['from']:.1f} -> {b['from']:.1f}")
+    c.check("drag sideways: price scale never changes", all(same(x, pspan(a)) for x in spans),
+            f"{pspan(a):.6f} -> {min(spans):.6f}..{max(spans):.6f}")
+
+
+async def sec_unseen_drag(c: Ctx):
+    # The 1.0.2 failure on real mice: navigation.js's own pointer handlers miss the drag and only
+    # Lightweight Charts handles it. The price scale must still not change.
+    await c.p.ev("(n => { n.onPointerDown = () => {}; n.onPointerMove = () => {}; })(SMCDashboard.nav)")
+    a = await c.st()
+    path = [(c.px - 15 * i, c.py + 20 * ((i // 5) % 2) - 10) for i in range(1, 31)]
+    spans = await c.drag_track(c.px, c.py, path)
+    b = await c.st()
+    c.check("drag unseen by our listeners: moves in time", abs(b["from"] - a["from"]) > 1)
+    c.check("drag unseen by our listeners: price scale never changes", all(same(x, pspan(a)) for x in spans),
+            f"{pspan(a):.6f} -> {min(spans):.6f}..{max(spans):.6f}")
+
+
+async def sec_safety_net(c: Ctx):
+    await c.p.ev("SMCDashboard.series.priceScale().setAutoScale(true)")   # behind navigation.js's back
+    await asyncio.sleep(0.4)
+    a = await c.st()
+    spans = []
+    for _ in range(8):
+        await c.p.wheel(c.px, c.py, dx=-60, dy=0)
+        spans.append(pspan(await c.st()))
+    b = await c.st()
+    c.check("safety net: stray auto-scale re-locked on first time move, scale unchanged",
+            not b["auto"] and all(same(x, pspan(a)) for x in spans),
+            f"{pspan(a):.6f} -> {min(spans):.6f}..{max(spans):.6f}")
+
+
+async def sec_price_pan(c: Ctx):
+    a = await c.st()
+    await c.p.wheel(c.px, c.py, dy=100)
+    b = await c.st()
+    c.check("wheel up/down: moves in price, same price scale, same time",
+            b["top"] < a["top"] and same(pspan(a), pspan(b)) and same(a["from"], b["from"]),
+            f"top {a['top']:.6f} -> {b['top']:.6f}")
+    await c.fit()
+    grab = await c.p.ev(f"SMCDashboard.series.coordinateToPrice({c.py - c.T})")
+    await c.p.drag(c.px, c.py, c.px, c.py + 100)
+    under = await c.p.ev(f"SMCDashboard.series.coordinateToPrice({c.py + 100 - c.T})")
+    a = await c.st()
+    c.check("drag up/down: grabbed price stays under the cursor", abs(under - grab) <= pspan(a) * 0.005,
+            f"{grab:.6f} vs {under:.6f}")
+
+
+async def sec_time_zoom(c: Ctx):
+    a = await c.st()
+    ax = c.L + c.paneW * 0.25
+    anchor_a = a["from"] + bars(a) * 0.25
+    await c.p.wheel(ax, c.py, dy=-100, mods=2)
+    b = await c.st()
+    anchor_b = b["from"] + bars(b) * 0.25
+    c.check("ctrl+wheel: zooms time in", bars(b) < bars(a) * 0.9, f"{bars(a):.1f} -> {bars(b):.1f} bars")
+    c.check("ctrl+wheel: bar under the cursor stays put", abs(anchor_a - anchor_b) < 0.5)
+    c.check("ctrl+wheel: price scale unchanged", same(pspan(a), pspan(b)))
+    a = await c.st()
+    await c.p.wheel(c.time_x, c.time_y, dy=100)
+    b = await c.st()
+    c.check("time-axis wheel: zooms time, price scale unchanged",
+            bars(b) > bars(a) * 1.1 and same(pspan(a), pspan(b)), f"{bars(a):.1f} -> {bars(b):.1f} bars")
+
+
+async def sec_time_axis_drag(c: Ctx):
+    a = await c.st()
+    await c.p.drag(c.time_x, c.time_y, c.time_x - 150, c.time_y)
+    b = await c.st()
+    c.check("time-axis drag: zooms time, price scale unchanged",
+            not same(bars(a), bars(b), 1e-3) and same(pspan(a), pspan(b)),
+            f"{bars(a):.1f} -> {bars(b):.1f} bars")
+
+
+async def sec_price_axis_and_fit(c: Ctx):
+    a = await c.st()
+    await c.p.wheel(c.price_x, c.price_y, dy=-100)
+    b = await c.st()
+    c.check("price-axis wheel: zooms price, time unchanged",
+            pspan(b) < pspan(a) * 0.9 and same(a["from"], b["from"]) and same(a["to"], b["to"]))
+    await c.p.ev("SMCDashboard.series.priceScale().setAutoScale(true)")   # the library's own fit
+    await asyncio.sleep(0.4)
+    ref = pspan(await c.st())
+    await c.p.wheel(c.price_x, c.price_y, dy=-150)                       # user zooms prices
+    await c.p.ev("document.getElementById('btn-auto').click()")
+    await asyncio.sleep(0.4)
+    b = await c.st()
+    c.check("auto button: fits prices to the candles on screen, then locks",
+            same(pspan(b), ref) and not b["auto"], f"{pspan(b):.6f} vs fit {ref:.6f}")
+
+
+async def sec_live_tick(c: Ctx):
+    a = await c.st()
+    target = a["top"] + pspan(a) * 0.5                                    # a price far above the view
+    await c.p.ev(f"SMCDashboard.nav.keepInView({target})")
+    b = await c.st()
+    c.check("live tick above the view: price axis slides to show it, same scale",
+            b["top"] >= target and same(pspan(a), pspan(b)) and not b["auto"],
+            f"top {a['top']:.6f} -> {b['top']:.6f}, target {target:.6f}")
+
+
+async def sec_cursors(c: Ctx):
+    cursor = "((x, y) => getComputedStyle(document.elementFromPoint(x, y)).cursor)"
+    await c.p.mouse("mouseMoved", c.time_x, c.time_y)
+    ct = await c.p.ev(f"{cursor}({c.time_x}, {c.time_y})")
+    await c.p.mouse("mouseMoved", c.price_x, c.price_y)
+    cp = await c.p.ev(f"{cursor}({c.price_x}, {c.price_y})")
+    c.check("cursor: time axis shows <->", ct == "ew-resize", ct)
+    c.check("cursor: price axis shows up/down", cp == "ns-resize", cp)
+
+
+SECTIONS = [sec_load_and_hover, sec_swipe, sec_drag, sec_unseen_drag, sec_safety_net, sec_price_pan,
+            sec_time_zoom, sec_time_axis_drag, sec_price_axis_and_fit, sec_live_tick, sec_cursors]
+
+
+async def run_section(url: str, section, check) -> None:
     browser = subprocess.Popen([find_browser(), "--headless=new", "--disable-gpu",
-                                f"--remote-debugging-port={CDP_PORT}", f"--user-data-dir={profile}",
+                                f"--remote-debugging-port={CDP_PORT}", f"--user-data-dir={tempfile.mkdtemp()}",
                                 "--window-size=1500,900", url])
-    results: list[bool] = []
-
-    def check(name: str, ok: bool, detail: str = "") -> None:
-        results.append(bool(ok))
-        print(f"{'PASS' if ok else 'FAIL'}  {name}" + (f"   [{detail}]" if detail else ""))
-
     try:
         page_info = None
         for _ in range(150):             # up to ~45 s for a cold browser start
@@ -119,7 +316,7 @@ async def run(url: str) -> int:
             except Exception:
                 time.sleep(0.3)
         if page_info is None:
-            sys.exit("browser did not start")
+            raise RuntimeError("browser did not start")
         async with websockets.connect(page_info["webSocketDebuggerUrl"], max_size=50_000_000) as ws:
             p = Page(ws)
             for _ in range(180):
@@ -127,164 +324,33 @@ async def run(url: str) -> int:
                     break
                 await asyncio.sleep(0.5)
             else:
-                sys.exit("dashboard did not load (is the server running and ready?)")
+                raise RuntimeError("dashboard did not load (is the server running and ready?)")
             await asyncio.sleep(1.5)
-            st = lambda: p.ev(STATE)
-
-            async def reset():
-                # Re-enable auto-scale and let the chart finish re-fitting (it applies on the next frame).
-                await p.ev("SMCDashboard.nav.setAutoScale(true)")
-                await asyncio.sleep(0.4)
-            bars = lambda s: s["to"] - s["from"]
-            pspan = lambda s: s["top"] - s["bot"]
-            same = lambda a, b, tol=1e-6: abs(a - b) <= tol * max(1.0, abs(a))
-
-            s0 = await st()
-            L, T = s0["left"], s0["topPx"]
-            paneW, paneH = s0["w"] - s0["axisW"], s0["h"] - s0["axisH"]
-            px, py = L + paneW * 0.55, T + paneH * 0.5
-            time_x, time_y = L + paneW * 0.5, T + paneH + s0["axisH"] / 2
-            price_x, price_y = L + paneW + s0["axisW"] / 2, T + paneH * 0.4
-
-            # --- hover only -------------------------------------------------------------
-            a = await st()
-            for i in range(50):
-                await p.mouse("mouseMoved", L + (s0["w"] - 4) * i / 49, T + 10 + (s0["h"] - 14) * ((i * 7) % 50) / 49)
-            await asyncio.sleep(0.4)
-            b = await st()
-            check("hover: no change to time or price", same(a["from"], b["from"]) and same(a["to"], b["to"])
-                  and same(pspan(a), pspan(b)) and b["auto"])
-
-            # --- sideways scroll / swipe: time only, price scale untouched ---------------
-            a = await st()
-            spans = []
-            for _ in range(12):
-                await p.wheel(px, py, dx=-50, dy=6)          # swipe with vertical noise
-                spans.append(pspan(await st()))
-            b = await st()
-            check("swipe left/right: moves in time", b["from"] < a["from"] - 1,
-                  f"from {a['from']:.1f} -> {b['from']:.1f}")
-            check("swipe left/right: bar count unchanged (no time zoom)", same(bars(a), bars(b), 1e-4),
-                  f"{bars(a):.2f} -> {bars(b):.2f}")
-            check("swipe left/right: price scale never changes (no vertical zoom)",
-                  all(same(x, pspan(a), 1e-6) for x in spans), f"{pspan(a):.2f} -> {min(spans):.2f}..{max(spans):.2f}")
-            check("swipe left/right: price axis locked (auto off, toggle grey)", not b["auto"] and not b["autoBtn"])
-            await p.wheel(px, py, dx=50 * 12, dy=0)
-            await reset()
-
-            # --- shift + wheel pans time, again without touching the price scale --------
-            a = await st()
-            await p.wheel(px, py, dy=-200, mods=8)
-            b = await st()
-            check("shift+wheel: moves in time, price scale unchanged",
-                  b["from"] < a["from"] and same(bars(a), bars(b), 1e-4) and same(pspan(a), pspan(b)))
-            await reset()
-
-            # --- drag sideways (with a little wobble) -----------------------------------
-            a = await st()
-            await p.mouse("mouseMoved", px, py)
-            await p.mouse("mousePressed", px, py, buttons=1)
-            spans = []
-            for i in range(1, 31):
-                await p.mouse("mouseMoved", px + 15 * i, py + (i % 3) - 1, buttons=1)
-                await asyncio.sleep(0.02)
-                spans.append(pspan(await st()))
-            await p.mouse("mouseReleased", px + 450, py)
-            await asyncio.sleep(0.5)
-            b = await st()
-            check("drag sideways: moves in time", b["from"] < a["from"] - 1, f"from {a['from']:.1f} -> {b['from']:.1f}")
-            check("drag sideways: price scale never changes",
-                  all(same(x, pspan(a)) for x in spans) and same(pspan(b), pspan(a)),
-                  f"{pspan(a):.2f} -> {min(spans):.2f}..{max(spans):.2f}")
-            await reset()
-
-            # --- plain vertical wheel pans price ----------------------------------------
-            a = await st()
-            await p.wheel(px, py, dy=100)
-            b = await st()
-            check("wheel up/down: moves in price, same price scale, same time",
-                  b["top"] < a["top"] and same(pspan(a), pspan(b), 1e-6) and same(a["from"], b["from"]),
-                  f"top {a['top']:.2f} -> {b['top']:.2f}, span {pspan(a):.2f} -> {pspan(b):.2f}, "
-                  f"from {a['from']:.2f} -> {b['from']:.2f}")
-            await reset()
-
-            # --- vertical drag: grabbed price stays under the cursor --------------------
-            await asyncio.sleep(0.2)
-            grab = await p.ev(f"SMCDashboard.series.coordinateToPrice({py - T})")
-            await p.drag(px, py, px, py + 100)
-            under = await p.ev(f"SMCDashboard.series.coordinateToPrice({py + 100 - T})")
-            a = await st()
-            check("drag up/down: grabbed price stays under the cursor", abs(under - grab) <= pspan(a) * 0.005,
-                  f"{grab:.2f} vs {under:.2f}")
-            await reset()
-
-            # --- time zoom: ctrl+wheel / pinch, anchored, price scale untouched ----------
-            await asyncio.sleep(0.2)
-            a = await st()
-            ax = L + paneW * 0.25
-            anchor_a = a["from"] + bars(a) * 0.25
-            await p.wheel(ax, py, dy=-100, mods=2)
-            b = await st()
-            anchor_b = b["from"] + bars(b) * 0.25
-            check("ctrl+wheel: zooms time in", bars(b) < bars(a) * 0.9, f"{bars(a):.1f} -> {bars(b):.1f} bars")
-            check("ctrl+wheel: bar under the cursor stays put", abs(anchor_a - anchor_b) < 0.5)
-            check("ctrl+wheel: price scale unchanged", same(pspan(a), pspan(b)))
-            await reset()
-
-            # --- time axis: wheel and drag zoom time only --------------------------------
-            await asyncio.sleep(0.2)
-            a = await st()
-            await p.wheel(time_x, time_y, dy=100)
-            b = await st()
-            check("time-axis wheel: zooms time, price scale unchanged",
-                  bars(b) > bars(a) * 1.1 and same(pspan(a), pspan(b)), f"{bars(a):.1f} -> {bars(b):.1f} bars")
-            await reset()
-            await asyncio.sleep(0.2)
-            a = await st()
-            await p.drag(time_x, time_y, time_x - 150, time_y)
-            b = await st()
-            check("time-axis drag: zooms time, price scale unchanged",
-                  not same(bars(a), bars(b), 1e-3) and same(pspan(a), pspan(b)), f"{bars(a):.1f} -> {bars(b):.1f} bars")
-            await reset()
-
-            # --- price axis: wheel zooms price only ----------------------------------------
-            await asyncio.sleep(0.2)
-            a = await st()
-            await p.wheel(price_x, price_y, dy=-100)
-            b = await st()
-            check("price-axis wheel: zooms price, time unchanged",
-                  pspan(b) < pspan(a) * 0.9 and same(a["from"], b["from"]) and same(a["to"], b["to"]))
-
-            # --- auto toggle restores the fit ---------------------------------------------
-            await p.ev("document.getElementById('btn-auto').click()")
-            await asyncio.sleep(0.3)
-            b = await st()
-            check("auto toggle: re-enables price auto-scale", b["auto"] and b["autoBtn"])
-
-            # --- live tick while locked: slides the axis, never rescales -------------------
-            # F (fit) puts the newest bar on screen.
-            await p.ev("document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'f', bubbles: true}))")
-            await asyncio.sleep(0.3)
-            await p.wheel(px, py, dx=1, dy=0)                  # lock the price axis
-            a = await st()
-            target = a["top"] + pspan(a) * 0.5                 # a price far above the view
-            await p.ev(f"SMCDashboard.nav.keepInView({target})")
-            b = await st()
-            check("live tick above the view: price axis slides to show it, same scale",
-                  b["top"] >= target and same(pspan(a), pspan(b), 1e-6) and not b["auto"],
-                  f"top {a['top']:.2f} -> {b['top']:.2f}, target {target:.2f}")
-            await reset()
-
-            # --- cursors per region -------------------------------------------------------
-            cursor = "((x, y) => getComputedStyle(document.elementFromPoint(x, y)).cursor)"
-            await p.mouse("mouseMoved", time_x, time_y)
-            ct = await p.ev(f"{cursor}({time_x}, {time_y})")
-            await p.mouse("mouseMoved", price_x, price_y)
-            cp = await p.ev(f"{cursor}({price_x}, {price_y})")
-            check("cursor: time axis shows <->", ct == "ew-resize", ct)
-            check("cursor: price axis shows up/down", cp == "ns-resize", cp)
+            await section(Ctx(p, await p.ev(STATE), check))
     finally:
         browser.kill()
+        try:
+            browser.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            pass
+
+
+async def run(url: str) -> int:
+    results: list[bool] = []
+    for section in SECTIONS:
+        for attempt in (1, 2):
+            pending: list[tuple[str, bool, str]] = []
+            try:
+                await run_section(url, section, lambda n, ok, d="", out=pending: out.append((n, bool(ok), d)))
+                break
+            except RuntimeError as e:
+                if attempt == 2:
+                    pending.append((f"{section.__name__}: could not run ({e})", False, ""))
+                    break
+                print(f"(retrying {section.__name__} in a fresh browser: {e})")
+        for name, ok, detail in pending:
+            results.append(ok)
+            print(f"{'PASS' if ok else 'FAIL'}  {name}" + (f"   [{detail}]" if detail else ""))
 
     passed = sum(results)
     print(f"\n{passed}/{len(results)} checks passed")

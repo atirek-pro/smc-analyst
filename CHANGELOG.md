@@ -5,6 +5,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-17
+
+### Fixed
+- **Click-dragging the candles left/right still made them taller/shorter in real browsers.** 1.0.2 locked the
+  price axis only when its own listeners saw a drag start, before Lightweight Charts handled it. That held for
+  synthetic test input but not for every real mouse/browser, so the library's price auto-scale could still
+  re-fit the axis during a drag (reproduced: a drag the listeners miss swung the EURUSD price span about +/-8%).
+  The price axis is now **never left in auto-scale**: it is fitted once (load, timeframe switch, `F`, `A` /
+  the `auto` button, double-click on the price axis) and locked right after the next paint, so no input path
+  can rescale prices while moving in time. A visible-range listener re-locks it if anything else ever turns
+  auto-scale back on.
+- `auto` / `A` is now a one-shot "fit prices to the candles on screen" instead of an on/off toggle.
+
+### Changed
+- `tools/check_navigation.py` runs each group of checks in a fresh headless browser (long synthetic sessions
+  could stall inside headless Chromium) and adds checks for a drag the dashboard's listeners never see, the
+  locked-after-load state and the re-lock safety net.
+
 ## [1.0.2] - 2026-11-17
 
 ### Fixed

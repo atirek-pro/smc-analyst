@@ -10,18 +10,24 @@
  *                drag                       -> pan time and price (grab cursor)
  *   time axis    wheel or drag              -> zoom time      (ew-resize cursor)
  *   price axis   wheel or drag              -> zoom price     (ns-resize cursor)
- *   double-click an axis                    -> reset that axis (auto-scale / default spacing)
+ *   double-click an axis                    -> reset that axis (fit prices / default spacing)
  *
  * Each wheel event moves along ONE axis only (the dominant one), so a slightly diagonal
  * swipe never pans and zooms at the same time.
  *
  * Horizontal navigation never changes the vertical scale. Lightweight Charts' price auto-scale
  * re-fits the axis to whatever candles are on screen, so panning sideways visibly zoomed the
- * chart in and out (measured: the price span swung ~85% over a few hundred pixels). Any time
- * navigation therefore first locks the price axis at its current range (freezePrice). Auto-scale
- * returns only when the user asks: the "auto" corner toggle, key A, F (fit), a timeframe switch or
- * a double-click on the price axis. While locked, live ticks shift (never rescale) the price axis
- * just enough to keep the latest price visible (keepInView). onAutoScaleChange drives the toggle.
+ * chart in and out (measured: the price span swung ~85% over a few hundred pixels).
+ *
+ * 1.0.2 locked the axis when a drag or swipe *started*. That depends on our listeners seeing the
+ * input before Lightweight Charts does, which held for synthetic input but not for every real
+ * mouse/browser, so real drags could still re-fit. Since 1.0.3 the axis is simply never left in
+ * auto-scale: fitPrice() lets the library compute one fit, then locks it after the next paint.
+ * Fits happen only when asked for: load, timeframe switch, F, A / the "auto" corner button, or a
+ * double-click on the price axis. A visible-range listener re-locks the axis if anything else ever
+ * turns auto-scale back on, so no input path can make horizontal movement rescale prices.
+ * While locked, live ticks slide (never rescale) the axis to keep the latest price visible
+ * (keepInView).
  */
 (function (global) {
   'use strict';
@@ -46,6 +52,7 @@
       this.barCount = opts.barCount || (() => 0);
       this.onAutoScaleChange = opts.onAutoScaleChange || (() => {});
       this.drag = null;
+      this.fitting = false;
 
       // Hand the wheel to us; keep LWC's own drag-to-pan, axis drag-to-scale and pinch.
       chart.applyOptions({
@@ -58,7 +65,15 @@
       container.addEventListener('pointerdown', (e) => this.onPointerDown(e), true);
       container.addEventListener('pointermove', (e) => this.onPointerMove(e), true);
       global.addEventListener('pointerup', () => this.onPointerUp(), true);
-      container.addEventListener('dblclick', () => setTimeout(() => this.syncAutoScale(), 0), true);
+      // A price-axis double-click makes LWC re-enable auto-scale: turn that into a one-shot fit.
+      container.addEventListener('dblclick', () => setTimeout(() => {
+        if (this.isAutoScale() && !this.fitting) this.fitPrice();
+      }, 0), true);
+      // Safety net: whatever turned auto-scale on (another input path, the library itself),
+      // the first time movement locks it again before it can re-fit the next frame.
+      chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+        if (!this.fitting && this.isAutoScale()) this.freezePrice();
+      });
     }
 
     // ------------------------------------------------------------- geometry
@@ -90,6 +105,20 @@
       if (!r) return;
       ps.setVisibleRange({ from: r.from, to: r.to });
       this.syncAutoScale();
+    }
+
+    // Fit the price axis to the candles on screen once, then lock it. LWC computes the auto-scale
+    // range when it paints, so the lock is taken after two animation frames.
+    fitPrice() {
+      const ps = this.series.priceScale();
+      this.fitting = true;
+      ps.setAutoScale(true);
+      this.syncAutoScale();
+      const lock = () => {
+        this.fitting = false;
+        this.freezePrice();
+      };
+      requestAnimationFrame(() => requestAnimationFrame(lock));
     }
 
     // ------------------------------------------------------------- time axis
@@ -226,8 +255,8 @@
     }
 
     setAutoScale(on) {
-      this.series.priceScale().setAutoScale(on);
-      this.syncAutoScale();
+      if (on) return this.fitPrice();
+      this.freezePrice();
     }
   }
 

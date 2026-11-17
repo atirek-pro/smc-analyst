@@ -95,9 +95,9 @@
     // TradingView-style navigation: wheel pans, Ctrl/pinch or the axes zoom (navigation.js).
     S.nav = new SMCNavigation.ChartNavigation(S.chart, S.series, $('chart'), {
       barCount: () => S.candles.length,
-      onAutoScaleChange: (on) => $('btn-auto').classList.toggle('on', on),
+      onAutoScaleChange: (on) => $('btn-auto').classList.toggle('on', on),   // lit only while fitting
     });
-    $('btn-auto').onclick = () => S.nav.setAutoScale(!S.nav.isAutoScale());
+    $('btn-auto').onclick = () => S.nav.fitPrice();
     // Sit the "auto" toggle in the corner between the two axes, like TradingView.
     const placeAuto = () => {
       const b = $('btn-auto');
@@ -360,7 +360,7 @@
     const n = S.candles.length;
     if (!n) return;
     S.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, n - 160), to: n + 18 });
-    if (S.nav) S.nav.setAutoScale(true);
+    if (S.nav) S.nav.fitPrice();
   }
 
   function updatePrice(p) {
@@ -499,7 +499,7 @@
       else if (k === 'p') toggleLayer('position');
       else if (k === 'l') $('layers').hidden = !$('layers').hidden;
       else if (k === 'f') fitRecent();
-      else if (k === 'a') S.nav.setAutoScale(!S.nav.isAutoScale());
+      else if (k === 'a') S.nav.fitPrice();
       else if (k === 'r') refreshAll();
       else if (k === 't') applyTheme(S.theme === 'dark' ? 'light' : 'dark');
       else if (e.key === '?') $('help').hidden = !$('help').hidden;

@@ -3,7 +3,7 @@
 > Ask Claude for a **top-down Smart Money Concepts (SMC / ICT)** analysis of any stock, crypto or forex pair. You get a structured report, a priced trade plan (or an honest *"no setup — waiting for X"*), and a **live candlestick dashboard** with every concept drawn on real-time candles.
 
 [![CI](https://github.com/atirek-pro/smc-analyst/actions/workflows/ci.yml/badge.svg)](https://github.com/atirek-pro/smc-analyst/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-1.0.2-blue)
+![version](https://img.shields.io/badge/version-1.0.3-blue)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -78,7 +78,7 @@ npx skills add atirek-pro/smc-analyst -a claude-code
 ![Full dashboard](docs/images/dashboard.png)
 
 ### Dashboard keys
-`1`–`7` timeframes (1W → 1m) · `H` HTF zones on/off · `P` position tool · `L` layers · `F` fit · `A` price auto-scale · `R` refresh · `T` theme · `?` help.
+`1`–`7` timeframes (1W → 1m) · `H` HTF zones on/off · `P` position tool · `L` layers · `F` fit · `A` fit prices · `R` refresh · `T` theme · `?` help.
 
 ### Chart navigation (TradingView-style)
 | Action | Where | Effect |
@@ -89,12 +89,12 @@ npx skills add atirek-pro/smc-analyst -a claude-code
 | Drag | chart | pan in time and price (the grabbed price stays under the cursor) |
 | Scroll or drag | time axis (`↔` cursor) | zoom time |
 | Scroll or drag | price axis (`↕` cursor) | zoom price |
-| Double-click | an axis | reset it; `auto` in the axis corner restores price auto-scale |
+| Double-click | an axis | reset it (the price axis re-fits to the candles on screen) |
 
-Moving or zooming in **time never changes the price scale**: the first sideways move locks the price axis where
-it is (the `auto` toggle turns grey), so the chart can't zoom vertically as different candles come into view.
-Live ticks slide the locked axis to keep the current price visible. `auto`, `A`, `F`, a timeframe switch or a
-double-click on the price axis re-fit it.
+Moving or zooming in **time never changes the price scale**. The price axis is fitted once (on load, a timeframe
+switch, `F`, `A` / the `auto` corner button, or a double-click on the price axis) and then stays locked, so the
+candles never get taller or shorter as different bars come into view. Live ticks slide the locked axis to keep the
+current price visible.
 
 Deep links: `?tf=4H&theme=light&layers=ob,fvg`.
 
