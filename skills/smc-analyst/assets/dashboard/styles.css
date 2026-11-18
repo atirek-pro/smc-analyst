@@ -2,6 +2,8 @@
   --bg: #0d1117; --surface: #131a23; --surface-2: #1a2330; --border: #263241;
   --text: #e6edf3; --muted: #8b98a8; --accent: #f0b90b;
   --bull: #26a69a; --bear: #ef5350; --info: #4f8cff; --warn: #f0b90b;
+  /* position tool: deeper than --bull/--bear so the trade plan stands apart from zones */
+  --pos-profit: #0b8a76; --pos-loss: #c7303c;
   --radius: 10px; --gap: 12px;
   color-scheme: dark;
 }
@@ -9,6 +11,7 @@
   --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --border: #dde2e8;
   --text: #17202b; --muted: #5d6b7c; --accent: #b7860b;
   --bull: #0f9d8a; --bear: #d93b38; --info: #2f6fe0; --warn: #b7860b;
+  --pos-profit: #0a7d6b; --pos-loss: #c22b37;
   color-scheme: light;
 }
 * { box-sizing: border-box; }

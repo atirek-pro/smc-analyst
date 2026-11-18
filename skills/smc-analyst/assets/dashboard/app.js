@@ -61,6 +61,7 @@
       bull: cssVar('--bull'), bear: cssVar('--bear'), info: cssVar('--info'), warn: cssVar('--warn'),
       text: cssVar('--text'), muted: cssVar('--muted'), border: cssVar('--border'), bg: cssVar('--bg'),
       surface: cssVar('--surface'), accent: cssVar('--accent'),
+      profit: cssVar('--pos-profit'), loss: cssVar('--pos-loss'),
     };
   }
 
@@ -107,6 +108,7 @@
     S.chart.timeScale().subscribeSizeChange(placeAuto);
     placeAuto();
     window.SMCDashboard = S;   // read-only handle for debugging and automated UI checks
+    S.redraw = () => { renderOverlays(); renderPanel(); };   // used by UI checks / screenshots
     applyTheme(S.theme);
   }
 
@@ -118,9 +120,9 @@
 
   function buildShapes() {
     const a = S.analysis && S.analysis.overlays;
-    const rects = [], segments = [], glyphs = [], texts = [];
+    const rects = [], segments = [], glyphs = [], texts = [], positions = [];
     const bottom = { rects: [], segments: [], glyphs: [], texts: [] };
-    if (!a) return { bottom, top: { rects, segments, glyphs, texts } };
+    if (!a) return { bottom, top: { rects, segments, glyphs, texts, positions } };
     const c = palette(), L = S.layers;
 
     if (L.pd && a.dealing_range) {
@@ -190,19 +192,7 @@
     if (plan && plan.entry != null) {
       const lastT = S.candles.length ? S.candles[S.candles.length - 1].time : null;
       const t0 = Math.max(toEpoch(plan.entry_zone && plan.entry_zone.created_time) || lastT, S.candles.length ? S.candles[Math.max(0, S.candles.length - 40)].time : 0);
-      if (L.position) {
-        const long = plan.direction > 0;
-        rects.push({ t1: t0, t2: null, p1: plan.entry, p2: plan.stop_loss, fill: alpha(c.bear, 0.2), stroke: alpha(c.bear, 0.8),
-          label: `SL ${fmt(plan.stop_loss)}`, labelColor: c.bear, labelBg: alpha(c.surface, 0.9) });
-        let prev = plan.entry;
-        plan.targets.forEach((t, i) => {
-          rects.push({ t1: t0, t2: null, p1: prev, p2: t.price, fill: alpha(c.bull, 0.2 - i * 0.05), stroke: alpha(c.bull, 0.8),
-            label: `${t.name} ${fmt(t.price)} (${t.rr.toFixed(2)}R)`, labelColor: c.bull, labelBg: alpha(c.surface, 0.9) });
-          prev = t.price;
-        });
-        segments.push({ t1: t0, t2: null, p: plan.entry, color: c.text, width: 1.5,
-          label: `${long ? 'LONG' : 'SHORT'} entry ${fmt(plan.entry)}${plan.status === 'valid' ? '' : ' (not valid)'}`, labelPos: 'start', labelColor: c.text, labelBg: alpha(c.surface, 0.9) });
-      }
+      if (L.position && plan.targets.length) positions.push(positionShape(plan, t0, lastT, c));
       const o = plan.opposite;
       if (L.ghost && o && o.entry != null && lastT) {
         const g = alpha(c.muted, 0.9);
@@ -212,7 +202,35 @@
         segments.push({ t1: lastT, t2: null, p: o.trigger_level, color: g, dash: 'dot', label: 'flip trigger', labelPos: 'end' });
       }
     }
-    return { bottom, top: { rects, segments, glyphs, texts } };
+    return { bottom, top: { rects, segments, glyphs, texts, positions } };
+  }
+
+  // TradingView-style long/short position tool for the trade plan (drawn by overlays.js).
+  function positionShape(plan, t0, lastT, c) {
+    const long = plan.direction > 0;
+    const bar = TF_SECONDS[S.tf] || 60;
+    const elapsed = Math.max(1, Math.round((lastT - t0) / bar));
+    const tEnd = lastT + bar * Math.max(10, Math.round(elapsed * 0.35));   // a short stretch into the future
+    const pct = (p) => {
+      const v = ((p - plan.entry) / plan.entry) * 100;
+      return `${v >= 0 ? '+' : ''}${v.toFixed(Math.abs(v) < 1 ? 2 : 1)}%`;
+    };
+    const targets = plan.targets.slice().sort((x, y) => (long ? x.price - y.price : y.price - x.price));
+    const last = S.candles.length ? S.candles[S.candles.length - 1].close : null;
+    const valid = plan.status === 'valid';
+    return {
+      t1: t0, tNow: lastT, tEnd,
+      entry: plan.entry, stop: plan.stop_loss, nowPrice: last,
+      targets: targets.map((t) => ({
+        price: t.price,
+        tag: `${t.name}${t.name === plan.primary_target ? ' \u2605' : ''}  ${fmt(t.price)}  ${pct(t.price)}  ${t.rr.toFixed(1)}R`,
+      })),
+      stopTag: `SL  ${fmt(plan.stop_loss)}  ${pct(plan.stop_loss)}  -1R`,
+      entryTag: `${long ? 'LONG' : 'SHORT'}  ${fmt(plan.entry)}${valid ? '' : '  \u00b7 not valid'}`,
+      profit: (a) => alpha(c.profit, a), loss: (a) => alpha(c.loss, a),
+      line: alpha(c.text, 0.85), entryText: c.bg, tagText: '#ffffff', path: alpha(c.text, 0.55),
+      dim: !valid,
+    };
   }
 
   function renderOverlays() {

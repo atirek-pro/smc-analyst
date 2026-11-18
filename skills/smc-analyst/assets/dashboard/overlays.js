@@ -5,6 +5,8 @@
  *   segment {t1, t2|null, p, color, width, dash, label, labelColor, labelPos: 'start'|'mid'|'end'}
  *   glyph   {t, p, kind: 'x'|'diamond'|'dot', color, size, label, labelColor, above}
  *   text    {t, p, text, color, above}
+ *   position {t1, tNow, tEnd, entry, stop, targets: [{price, tag}], nowPrice, entryTag, stopTag,
+ *             profit, loss, line, tagText, dim}   TradingView-style long/short position tool
  * t2 === null means "extend to the right edge of the chart" (live / unmitigated).
  *
  * Times are UTC epoch seconds. TimeMapper converts any time into a fractional *logical*
@@ -53,6 +55,80 @@
     ctx.fillText(text, x, y);
   }
 
+  function pill(ctx, text, x, y, bg, fg, r, align) {
+    ctx.font = `600 ${Math.round(10.5 * r)}px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`;
+    const w = ctx.measureText(text).width + 10 * r, h = 16 * r;
+    const left = align === 'right' ? x - w : x;
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(left, y - h / 2, w, h, 3 * r); else ctx.rect(left, y - h / 2, w, h);
+    ctx.fill();
+    ctx.fillStyle = fg;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, left + 5 * r, y + 0.5 * r);
+  }
+
+  // Spread label y positions so no two pills overlap (keeps each as close to its line as possible).
+  function spread(items, minGap) {
+    const sorted = items.slice().sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].y - sorted[i - 1].y < minGap) sorted[i].y = sorted[i - 1].y + minGap;
+    }
+    return items;
+  }
+
+  // TradingView-style position tool: profit zone (entry -> last target) and loss zone (entry -> stop),
+  // darker over the elapsed bars (setup start -> now) and lighter into the future, a dashed path from
+  // the entry to the current price, a line and price tag per target, and the entry/stop tags.
+  function drawPosition(ctx, P, hr, vr) {
+    const x1 = P.x1 * hr, xn = Math.max(P.x1, Math.min(P.xn, P.x2)) * hr, x2 = P.x2 * hr;
+    if (x2 - x1 < 2) return;
+    const yE = P.yEntry * vr, yS = P.yStop * vr, yF = P.yTargets[P.yTargets.length - 1] * vr;
+    const k = P.dim ? 0.55 : 1;
+    const zone = (yA, yB, strong, weak) => {
+      const top = Math.min(yA, yB), h = Math.abs(yB - yA);
+      ctx.fillStyle = strong; ctx.fillRect(x1, top, xn - x1, h);
+      ctx.fillStyle = weak; ctx.fillRect(xn, top, x2 - xn, h);
+    };
+    zone(yE, yF, P.profit(0.30 * k), P.profit(0.15 * k));
+    zone(yE, yS, P.loss(0.28 * k), P.loss(0.14 * k));
+
+    // Outer edges (last target, stop) solid; intermediate targets dashed.
+    ctx.lineWidth = Math.max(1, hr);
+    P.yTargets.forEach((y, i) => {
+      const last = i === P.yTargets.length - 1;
+      ctx.strokeStyle = P.profit(last ? 0.85 * k : 0.7 * k);
+      ctx.setLineDash(last ? [] : [4 * hr, 3 * hr]);
+      ctx.beginPath(); ctx.moveTo(x1, Math.round(y * vr) + 0.5); ctx.lineTo(x2, Math.round(y * vr) + 0.5); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.strokeStyle = P.loss(0.85 * k);
+    ctx.beginPath(); ctx.moveTo(x1, Math.round(yS) + 0.5); ctx.lineTo(x2, Math.round(yS) + 0.5); ctx.stroke();
+
+    // Entry line.
+    ctx.strokeStyle = P.line; ctx.lineWidth = 1.5 * hr;
+    ctx.beginPath(); ctx.moveTo(x1, Math.round(yE) + 0.5); ctx.lineTo(x2, Math.round(yE) + 0.5); ctx.stroke();
+
+    // Path from the entry to the current price.
+    if (P.yNow !== null && xn > x1 + 2) {
+      ctx.strokeStyle = P.path; ctx.lineWidth = 1.2 * hr; ctx.setLineDash([5 * hr, 4 * hr]);
+      ctx.beginPath(); ctx.moveTo(x1, yE); ctx.lineTo(xn, P.yNow * vr); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = P.path;
+      ctx.beginPath(); ctx.arc(xn, P.yNow * vr, 2.5 * hr, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Tags: targets + stop on the right edge, entry on the left; never overlapping.
+    if (x2 - x1 < 60 * hr) return;
+    const right = spread([
+      ...P.targets.map((t, i) => ({ y: P.yTargets[i] * vr, text: t.tag, bg: P.profit(0.92) })),
+      { y: yS, text: P.stopTag, bg: P.loss(0.92) },
+    ], 18 * vr);
+    for (const l of right) pill(ctx, l.text, x2 - 4 * hr, l.y, l.bg, P.tagText, hr, 'right');
+    pill(ctx, P.entryTag, x1 + 4 * hr, yE, P.line, P.entryText, hr, 'left');
+  }
+
   class Renderer {
     constructor(items) { this.items = items; }
     draw(target) {
@@ -60,6 +136,7 @@
       if (!it) return;
       target.useBitmapCoordinateSpace(({ context: ctx, horizontalPixelRatio: hr, verticalPixelRatio: vr }) => {
         ctx.save();
+        for (const P of it.positions || []) drawPosition(ctx, P, hr, vr);
         for (const s of it.rects) {
           const x1 = Math.round(s.x1 * hr), x2 = Math.round(s.x2 * hr);
           const y1 = Math.round(Math.min(s.y1, s.y2) * vr), y2 = Math.round(Math.max(s.y1, s.y2) * vr);
@@ -131,7 +208,14 @@
         return x1 === null ? x0 : x0 + f * (x1 - x0);
       };
       const Y = (p) => series.priceToCoordinate(p);
-      const out = { rects: [], segments: [], glyphs: [], texts: [] };
+      const out = { rects: [], segments: [], glyphs: [], texts: [], positions: [] };
+      for (const P of shapes.positions || []) {
+        const x1 = X(P.t1), xn = X(P.tNow), x2 = X(P.tEnd);
+        const yEntry = Y(P.entry), yStop = Y(P.stop), yTargets = P.targets.map((t) => Y(t.price));
+        if ([x1, xn, x2, yEntry, yStop, ...yTargets].some((v) => v === null)) continue;
+        const yNow = P.nowPrice == null ? null : Y(P.nowPrice);
+        out.positions.push({ ...P, x1, xn, x2: Math.min(right + 10, x2), yEntry, yStop, yTargets, yNow });
+      }
       for (const s of shapes.rects) {
         const x1 = X(s.t1), x2 = s.t2 == null ? right : X(s.t2), y1 = Y(s.p1), y2 = Y(s.p2);
         if (x1 === null || x2 === null || y1 === null || y2 === null) continue;
@@ -159,7 +243,7 @@
   class OverlayPrimitive {
     constructor(zOrder) {
       this.z = zOrder || 'normal';
-      this.shapes = { rects: [], segments: [], glyphs: [], texts: [] };
+      this.shapes = { rects: [], segments: [], glyphs: [], texts: [], positions: [] };
       this.view = new PaneView(this);
       this.chart = null; this.series = null; this.request = null; this.mapper = null;
     }
@@ -167,7 +251,7 @@
     detached() { this.chart = this.series = this.request = null; }
     setMapper(m) { this.mapper = m; }
     setShapes(shapes) {
-      this.shapes = { rects: [], segments: [], glyphs: [], texts: [], ...shapes };
+      this.shapes = { rects: [], segments: [], glyphs: [], texts: [], positions: [], ...shapes };
       if (this.request) this.request();
     }
     // Price range that must stay visible (e.g. the trade plan's entry, stop and TP1); merged by the
