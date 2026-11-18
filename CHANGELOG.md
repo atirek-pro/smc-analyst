@@ -5,6 +5,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-11-18
+
+### Changed
+- **Trade plan drawn as a TradingView-style long/short position tool** (`overlays.js` `position` shape):
+  - profit zone from the entry to the last target and loss zone from the entry to the stop, darker over the
+    elapsed bars (setup start to now) and lighter for a short stretch into the future, instead of full-width
+    boxes running to the chart edge
+  - a thin line per target (dashed for intermediate targets, solid for the last) with a compact tag:
+    name (primary marked with a star), price, distance from entry in %, and R multiple; the stop has its own tag
+    and the entry line a `LONG` / `SHORT` tag; tags are spread apart so they never overlap
+  - dashed path from the entry to the current price, ending in a dot on the latest close
+  - own, slightly deeper translucent colours (`--pos-profit`, `--pos-loss`, dark and light theme) so the plan
+    stands apart from order blocks, FVGs and other zones; a plan that is not valid is drawn faded
+
 ## [1.0.4] - 2026-11-17
 
 ### Fixed
